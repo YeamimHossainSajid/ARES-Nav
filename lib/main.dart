@@ -39,29 +39,6 @@ class AresNavApp extends StatelessWidget {
   }
 }
 
-/// Natural cartographic label model (no boxes, no buttons, pure map typography)
-class MarsMapLabel {
-  final String name;
-  final LatLng location;
-  final double fontSize;
-  final bool isItalic;
-  final bool isBold;
-  final double letterSpacing;
-  final double opacity;
-  final double width;
-
-  const MarsMapLabel({
-    required this.name,
-    required this.location,
-    this.fontSize = 9.5,
-    this.isItalic = false,
-    this.isBold = false,
-    this.letterSpacing = 0.2,
-    this.opacity = 0.75,
-    this.width = 110.0,
-  });
-}
-
 class AresNavMapScreen extends StatefulWidget {
   const AresNavMapScreen({super.key});
 
@@ -104,107 +81,6 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
 
   // Emergency SOS Mode
   bool _isSosActive = false;
-
-  // --------------------------------------------------------------------------
-  // 3. NATURAL CARTOGRAPHIC LABELS (EXACTLY AS WRITTEN IN OPENPLANETARY MAP)
-  // These render as pure, elegant map text directly on the surface in Satellite Mode
-  // --------------------------------------------------------------------------
-  final List<MarsMapLabel> _cartographicLabels = const [
-    // Major Regional Planitia (Bold, all-caps, letter-spaced)
-    MarsMapLabel(
-      name: 'CHRYSE PLANITIA',
-      location: LatLng(22.8, -23.8),
-      fontSize: 13.5,
-      isBold: true,
-      letterSpacing: 1.6,
-      opacity: 0.90,
-      width: 170,
-    ),
-
-    // Major Valleys / Valles / Colles (Italicized, elegant cartography)
-    MarsMapLabel(
-      name: 'Simud Valles',
-      location: LatLng(17.6, -21.6),
-      fontSize: 12.0,
-      isItalic: true,
-      isBold: true,
-      opacity: 0.85,
-      width: 130,
-    ),
-    MarsMapLabel(
-      name: 'Tiu Valles',
-      location: LatLng(17.4, -19.4),
-      fontSize: 12.0,
-      isItalic: true,
-      isBold: true,
-      opacity: 0.85,
-      width: 120,
-    ),
-    MarsMapLabel(
-      name: 'Oxia Colles',
-      location: LatLng(18.9, -15.8),
-      fontSize: 11.5,
-      isItalic: true,
-      isBold: true,
-      opacity: 0.85,
-      width: 120,
-    ),
-    MarsMapLabel(
-      name: 'Marte Vallis',
-      location: LatLng(15.2, -15.0),
-      fontSize: 11.0,
-      isItalic: true,
-      opacity: 0.80,
-      width: 110,
-    ),
-
-    // Craters & Local Geographical Features (Matching the picture exactly)
-    MarsMapLabel(name: 'Makhambet', location: LatLng(23.2, -24.6), fontSize: 9.0),
-    MarsMapLabel(name: 'Lismore', location: LatLng(22.2, -24.8), fontSize: 9.0),
-    MarsMapLabel(name: 'Sefadu', location: LatLng(23.4, -20.9), fontSize: 9.2),
-    MarsMapLabel(name: 'Calahorra', location: LatLng(21.8, -22.9), fontSize: 9.2),
-    MarsMapLabel(name: 'Swanage', location: LatLng(21.7, -19.6), fontSize: 9.0),
-    MarsMapLabel(name: 'Kipini', location: LatLng(21.4, -17.9), fontSize: 9.0),
-    MarsMapLabel(name: 'Grindavik', location: LatLng(21.0, -22.9), fontSize: 9.0),
-    MarsMapLabel(name: 'Nakusp', location: LatLng(20.7, -20.3), fontSize: 9.0),
-    MarsMapLabel(name: 'Lydda', location: LatLng(20.5, -18.6), fontSize: 9.0),
-    MarsMapLabel(name: 'Cefalù', location: LatLng(20.2, -23.6), fontSize: 9.0),
-    MarsMapLabel(name: 'Alamos', location: LatLng(20.0, -22.4), fontSize: 9.0),
-    MarsMapLabel(name: 'Wahoo', location: LatLng(19.8, -19.8), fontSize: 9.0),
-    MarsMapLabel(name: 'Kaup', location: LatLng(19.6, -19.1), fontSize: 8.8),
-    MarsMapLabel(name: 'Shawnee', location: LatLng(19.4, -18.1), fontSize: 8.8),
-    MarsMapLabel(name: 'Libertad', location: LatLng(19.7, -16.8), fontSize: 8.8),
-    MarsMapLabel(name: 'Yoro', location: LatLng(19.4, -16.1), fontSize: 8.8),
-    MarsMapLabel(name: 'Naar', location: LatLng(19.6, -25.2), fontSize: 8.8),
-    MarsMapLabel(name: 'Tarsus', location: LatLng(19.6, -24.0), fontSize: 8.8),
-    MarsMapLabel(name: 'Yar', location: LatLng(19.1, -23.1), fontSize: 8.8),
-    MarsMapLabel(name: 'Mut', location: LatLng(19.1, -20.6), fontSize: 8.5),
-    MarsMapLabel(name: 'Cave', location: LatLng(18.8, -20.6), fontSize: 8.5),
-    MarsMapLabel(name: 'Yuty', location: LatLng(18.9, -19.8), fontSize: 8.8),
-    MarsMapLabel(name: 'Wabash', location: LatLng(18.6, -19.7), fontSize: 8.5),
-    MarsMapLabel(name: 'Bled', location: LatLng(18.8, -18.5), fontSize: 8.5),
-    MarsMapLabel(name: 'Lod', location: LatLng(18.6, -18.5), fontSize: 8.5),
-    MarsMapLabel(name: 'Bok', location: LatLng(18.4, -18.5), fontSize: 8.5),
-    MarsMapLabel(name: 'Gold', location: LatLng(18.2, -18.5), fontSize: 8.5),
-    MarsMapLabel(name: 'Batoş', location: LatLng(18.9, -17.2), fontSize: 8.8),
-    MarsMapLabel(name: 'Belz', location: LatLng(18.7, -25.8), fontSize: 8.8),
-    MarsMapLabel(name: 'Taxco', location: LatLng(18.1, -24.0), fontSize: 8.8),
-    MarsMapLabel(name: 'Warra', location: LatLng(18.1, -22.8), fontSize: 8.8),
-    MarsMapLabel(name: 'Harnelin', location: LatLng(18.0, -19.3), fontSize: 8.8),
-    MarsMapLabel(name: 'Zir', location: LatLng(17.5, -22.2), fontSize: 8.8),
-    MarsMapLabel(name: 'Yala', location: LatLng(16.9, -23.2), fontSize: 8.8),
-    MarsMapLabel(name: 'Luck', location: LatLng(16.9, -22.0), fontSize: 8.8),
-    MarsMapLabel(name: 'Sōf', location: LatLng(16.3, -23.0), fontSize: 8.8),
-    MarsMapLabel(name: 'Zuni', location: LatLng(17.7, -17.8), fontSize: 8.8),
-    MarsMapLabel(name: 'Banff', location: LatLng(16.9, -18.6), fontSize: 8.5),
-    MarsMapLabel(name: 'Surt', location: LatLng(16.5, -18.6), fontSize: 8.5),
-    MarsMapLabel(name: 'Chur', location: LatLng(16.5, -17.6), fontSize: 8.5),
-    MarsMapLabel(name: 'Ribe', location: LatLng(16.1, -17.6), fontSize: 8.5),
-    MarsMapLabel(name: 'Lins', location: LatLng(15.8, -18.3), fontSize: 8.5),
-    MarsMapLabel(name: 'Kok', location: LatLng(15.7, -17.3), fontSize: 8.5),
-    MarsMapLabel(name: 'Yat', location: LatLng(17.1, -16.8), fontSize: 8.5),
-    MarsMapLabel(name: 'Tile', location: LatLng(16.9, -16.8), fontSize: 8.5),
-  ];
 
   @override
   void initState() {
@@ -360,42 +236,6 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
                       'Accept': 'image/webp,image/png,image/jpeg,*/*',
                     },
                   ),
-                ),
-
-              // ==============================================================
-              // 3. NATURAL CARTOGRAPHIC LABELS ON SATELLITE MODE
-              // In Normal mode, labels are already drawn inside the OPM tiles.
-              // In Satellite mode, this renders them as pure, clean text directly
-              // on the surface, exactly matching the appearance in the picture!
-              // ==============================================================
-              if (_isSatelliteView)
-                MarkerLayer(
-                  markers: _cartographicLabels.map((label) {
-                    return Marker(
-                      point: label.location,
-                      width: label.width,
-                      height: 24,
-                      alignment: Alignment.center,
-                      child: Text(
-                        label.name,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: label.fontSize,
-                          fontStyle: label.isItalic ? FontStyle.italic : FontStyle.normal,
-                          fontWeight: label.isBold ? FontWeight.bold : FontWeight.w500,
-                          letterSpacing: label.letterSpacing,
-                          color: Colors.white.withOpacity(label.opacity),
-                          // Subtle halo ensures readability over satellite textures without boxes
-                          shadows: const [
-                            Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
-                            Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, -1)),
-                            Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(1, 0)),
-                            Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(-1, 0)),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
                 ),
 
               // Planned Route: Dashed neon-green line connecting Origin to Destination
