@@ -339,7 +339,31 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
               ),
 
               // ==============================================================
-              // NATURAL CARTOGRAPHIC LABELS ON SATELLITE MODE
+              // 2. OPENPLANETARY TRANSPARENT NOMENCLATURE TILE OVERLAY
+              // Streams the exact same IAU feature names and nomenclature layer
+              // from the non-satellite OpenPlanetary basemap directly over the
+              // NASA satellite imagery, covering every area name across Mars!
+              // ==============================================================
+              if (_isSatelliteView)
+                TileLayer(
+                  key: const ValueKey<String>('opm_satellite_nomenclature_overlay'),
+                  urlTemplate:
+                      'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/4,5/{z}/{x}/{y}.png',
+                  fallbackUrl:
+                      'https://cartocdn-gusc.global.ssl.fastly.net/nmanaud/api/v1/map/named/opm-mars-basemap-v0-1/5/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'org.spaceapps.aresnav',
+                  maxZoom: _maxZoom,
+                  minZoom: _minZoom,
+                  tileProvider: NetworkTileProvider(
+                    headers: const {
+                      'User-Agent': 'AresNav/1.0 (org.spaceapps.aresnav; Flutter)',
+                      'Accept': 'image/webp,image/png,image/jpeg,*/*',
+                    },
+                  ),
+                ),
+
+              // ==============================================================
+              // 3. NATURAL CARTOGRAPHIC LABELS ON SATELLITE MODE
               // In Normal mode, labels are already drawn inside the OPM tiles.
               // In Satellite mode, this renders them as pure, clean text directly
               // on the surface, exactly matching the appearance in the picture!
