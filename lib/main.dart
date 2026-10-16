@@ -341,3 +341,108 @@ class TopMissionHeaderBar extends StatelessWidget {
 
 
 // Floating control dock utilities
+class BottomTacticalGuidanceCard extends StatelessWidget {
+  final bool isSosActive;
+  final VoidCallback onToggleSos;
+
+  const BottomTacticalGuidanceCard({
+    super.key,
+    required this.isSosActive,
+    required this.onToggleSos,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xF212171E),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isSosActive ? const Color(0xFFFF3344) : Colors.white12,
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.55),
+              blurRadius: 18,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag Handle Pill
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Guidance Row
+            Row(
+              children: [
+                // Direction icon in rounded square
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0x1A00E676),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF00E676), width: 1.2),
+                  ),
+                  child: const Icon(
+                    Icons.turn_sharp_right_rounded,
+                    color: Color(0xFF00E676),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                // Tactical instruction
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'TACTICAL GUIDANCE',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.8,
+                          color: Color(0xFF00E676),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Traverse 048° NE along Ares Vallis paleochannel towards Outcrop Delta.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white.withOpacity(0.95),
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// ASTRONAUT GLOWING CYAN BEACON MARKER
+// ============================================================================
+
