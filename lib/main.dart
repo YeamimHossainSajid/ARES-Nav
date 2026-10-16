@@ -38,10 +38,13 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> {
   bool _isSatelliteView = false;
   static const LatLng _originLocation = LatLng(21.1483, -21.2798);
   static const LatLng _destinationLocation = LatLng(22.4200, -18.8500);
+  String _formattedDistance = '-- km';
 
   @override
   void initState() {
     super.initState();
+    final double dist = const Distance().distance(_originLocation, _destinationLocation) / 1000.0;
+    _formattedDistance = dist.toStringAsFixed(1) + ' km';
     _mapController = MapController();
   }
 
