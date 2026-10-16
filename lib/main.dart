@@ -60,6 +60,7 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> {
         ),
         children: [
           TileLayer(
+            key: ValueKey<bool>(_isSatelliteView),
             urlTemplate: _isSatelliteView
                 ? 'https://trek.nasa.gov/tiles/Mars/EQ/Mars_MOLA_blend200ppx_HRSC_ClrShade_clon0dd_200mpp_lzw/1.0.0/default/default028mm/{z}/{y}/{x}.jpg'
                 : 'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/all/{z}/{x}/{y}.png',
