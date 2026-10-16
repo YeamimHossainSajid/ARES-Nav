@@ -50,6 +50,11 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> {
         options: const MapOptions(
           initialCenter: LatLng(21.1483, -21.2798),
           initialZoom: 6.2,
+          minZoom: 2.0,
+          maxZoom: 12.0,
+          cameraConstraint: CameraConstraint.contain(
+            bounds: LatLngBounds(const LatLng(-85.0, -180.0), const LatLng(85.0, 180.0)),
+          ),
         ),
         children: const [],
       ),
