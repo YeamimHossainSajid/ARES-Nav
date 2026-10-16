@@ -36,6 +36,8 @@ class AresNavMapScreen extends StatefulWidget {
 class _AresNavMapScreenState extends State<AresNavMapScreen> {
   late final MapController _mapController;
   bool _isSatelliteView = false;
+  static const LatLng _originLocation = LatLng(21.1483, -21.2798);
+  static const LatLng _destinationLocation = LatLng(22.4200, -18.8500);
 
   @override
   void initState() {
