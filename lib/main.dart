@@ -148,3 +148,46 @@ class AstronautCyanBeaconMarker extends StatelessWidget {
     );
   }
 }
+
+class DestinationRedPinMarker extends StatelessWidget {
+  final double pulseProgress;
+  const DestinationRedPinMarker({super.key, required this.pulseProgress});
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 44,
+          height: 44,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 18 + (pulseProgress * 24),
+                height: 18 + (pulseProgress * 24),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFFFF3344).withOpacity((1.0 - pulseProgress) * 0.8),
+                    width: 2.0,
+                  ),
+                ),
+              ),
+              const Icon(Icons.location_on, size: 20, color: Color(0xFFFF3344)),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xDD0D0F14),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: const Color(0xFFFF3344), width: 0.8),
+          ),
+          child: const Text('DEST', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Color(0xFFFF3344))),
+        ),
+      ],
+    );
+  }
+}
