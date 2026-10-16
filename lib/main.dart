@@ -318,75 +318,48 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
             ),
 
           // ==================================================================
-          // 3. TOP FLOATING HEADER BAR (MATCHING REFERENCE DESIGN EXACTLY)
-          // ==================================================================
-          Align(
-            alignment: Alignment.topCenter,
-            child: SafeArea(
-              child: TopMissionHeaderBar(
-                distanceFormatted: _formattedDistance,
-                isSatelliteView: _isSatelliteView,
-                originLocation: _originLocation,
-                destinationLocation: _destinationLocation,
-                isSosActive: _isSosActive,
-              ),
-            ),
-          ),
-
-          // ==================================================================
-          // 4. RIGHT-HAND FLOATING CONTROLS: VIEW TOGGLE, RECENTER, ZOOM
+          // RIGHT-HAND FLOATING CONTROLS: VIEW TOGGLE, RECENTER, ZOOM
           // ==================================================================
           Positioned(
             right: 16,
-            top: 220,
-            child: Column(
-              children: [
-                // Layer View Toggle Button (Normal vs. Satellite)
-                _buildFloatingControlButton(
-                  icon: Icons.layers_rounded,
-                  tooltip: _isSatelliteView ? 'Switch to Normal Terrain' : 'Switch to Satellite View',
-                  highlight: _isSatelliteView,
-                  accentColor: _isSatelliteView ? const Color(0xFF00E5FF) : Colors.white70,
-                  onTap: _toggleMapView,
-                ),
-                const SizedBox(height: 12),
-
-                // Recenter Button (Jump to EVA-1)
-                _buildFloatingControlButton(
-                  icon: Icons.my_location_rounded,
-                  tooltip: 'Recenter on EVA-1',
-                  accentColor: const Color(0xFF00E676),
-                  onTap: _recenterOnOrigin,
-                ),
-                const SizedBox(height: 12),
-
-                // Zoom In
-                _buildFloatingControlButton(
-                  icon: Icons.add,
-                  tooltip: 'Zoom In',
-                  onTap: _zoomIn,
-                ),
-                const SizedBox(height: 6),
-
-                // Zoom Out
-                _buildFloatingControlButton(
-                  icon: Icons.remove,
-                  tooltip: 'Zoom Out',
-                  onTap: _zoomOut,
-                ),
-              ],
-            ),
-          ),
-
-          // ==================================================================
-          // 5. BOTTOM TACTICAL GUIDANCE CARD (MATCHING REFERENCE DESIGN)
-          // ==================================================================
-          Align(
-            alignment: Alignment.bottomCenter,
+            top: 60,
             child: SafeArea(
-              child: BottomTacticalGuidanceCard(
-                isSosActive: _isSosActive,
-                onToggleSos: _toggleSos,
+              child: Column(
+                children: [
+                  // Layer View Toggle Button (Normal vs. Satellite)
+                  _buildFloatingControlButton(
+                    icon: Icons.layers_rounded,
+                    tooltip: _isSatelliteView ? 'Switch to Normal Terrain' : 'Switch to Satellite View',
+                    highlight: _isSatelliteView,
+                    accentColor: _isSatelliteView ? const Color(0xFF00E5FF) : Colors.white70,
+                    onTap: _toggleMapView,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Recenter Button (Jump to EVA-1)
+                  _buildFloatingControlButton(
+                    icon: Icons.my_location_rounded,
+                    tooltip: 'Recenter on EVA-1',
+                    accentColor: const Color(0xFF00E676),
+                    onTap: _recenterOnOrigin,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Zoom In
+                  _buildFloatingControlButton(
+                    icon: Icons.add,
+                    tooltip: 'Zoom In',
+                    onTap: _zoomIn,
+                  ),
+                  const SizedBox(height: 6),
+
+                  // Zoom Out
+                  _buildFloatingControlButton(
+                    icon: Icons.remove,
+                    tooltip: 'Zoom Out',
+                    onTap: _zoomOut,
+                  ),
+                ],
               ),
             ),
           ),
