@@ -56,7 +56,14 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> {
             bounds: LatLngBounds(const LatLng(-85.0, -180.0), const LatLng(85.0, 180.0)),
           ),
         ),
-        children: const [],
+        children: [
+          TileLayer(
+            urlTemplate: 'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/all/{z}/{x}/{y}.png',
+            userAgentPackageName: 'org.spaceapps.aresnav',
+            maxZoom: 12.0,
+            minZoom: 2.0,
+          ),
+        ],
       ),
     );
   }
