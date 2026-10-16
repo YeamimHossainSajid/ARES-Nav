@@ -1,10 +1,16 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
+/// ============================================================================
+/// ARES NAV (Chryse Planitia Sector)
+/// Web Mercator (EPSG:3857) Planetary Map Engine with Normal/Satellite Toggle
+/// and Natural Cartographic Area Names in Satellite View (Matching OpenPlanetary)
+/// ============================================================================
+
 void main() {
   runApp(const AresNavApp());
-  void _toggleMapView() => setState(() => _isSatelliteView = !_isSatelliteView);
 }
 
 class AresNavApp extends StatelessWidget {
@@ -19,11 +25,41 @@ class AresNavApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0D0F14),
+        primaryColor: const Color(0xFFC1440E),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFFC1440E),
+          secondary: Color(0xFF00E676),
+          surface: Color(0xFF11151F),
+          error: Color(0xFFFF3344),
+        ),
         fontFamily: 'monospace',
       ),
       home: const AresNavMapScreen(),
     );
   }
+}
+
+/// Natural cartographic label model (no boxes, no buttons, pure map typography)
+class MarsMapLabel {
+  final String name;
+  final LatLng location;
+  final double fontSize;
+  final bool isItalic;
+  final bool isBold;
+  final double letterSpacing;
+  final double opacity;
+  final double width;
+
+  const MarsMapLabel({
+    required this.name,
+    required this.location,
+    this.fontSize = 9.5,
+    this.isItalic = false,
+    this.isBold = false,
+    this.letterSpacing = 0.2,
+    this.opacity = 0.75,
+    this.width = 110.0,
+  });
 }
 
 class AresNavMapScreen extends StatefulWidget {
@@ -33,164 +69,509 @@ class AresNavMapScreen extends StatefulWidget {
   State<AresNavMapScreen> createState() => _AresNavMapScreenState();
 }
 
-class _AresNavMapScreenState extends State<AresNavMapScreen> {
+class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerProviderStateMixin {
   late final MapController _mapController;
-  bool _isSatelliteView = false;
+  late final AnimationController _pulseController;
+
+  // --------------------------------------------------------------------------
+  // 1. SPATIAL PARAMETERS & COORDINATES (Chryse Planitia Sector)
+  // --------------------------------------------------------------------------
+  static const LatLng _chryseCenter = LatLng(21.1483, -21.2798);
+  static const double _initialZoom = 6.2;
+  static const double _minZoom = 2.0;
+  static const double _maxZoom = 12.0;
+
+  // Origin: Astronaut EVA-1 Base Camp in Chryse Planitia
   static const LatLng _originLocation = LatLng(21.1483, -21.2798);
+
+  // Target Destination: Outcrop Delta
   static const LatLng _destinationLocation = LatLng(22.4200, -18.8500);
-  String _formattedDistance = '-- km';
+
+  // Planetary Camera Bounds (Safe Web Mercator latitude limits to prevent infinity crash)
+  final LatLngBounds _planetaryBounds = LatLngBounds(
+    const LatLng(-85.0, -180.0),
+    const LatLng(85.0, 180.0),
+  );
+
+  // --------------------------------------------------------------------------
+  // 2. STATE MANAGEMENT: NORMAL TERRAIN VS. SATELLITE VIEW
+  // --------------------------------------------------------------------------
+  bool _isSatelliteView = false;
+
+  // Calculated distance variables
+  late final double _distanceKm;
+  late final String _formattedDistance;
+
+  // Emergency SOS Mode
+  bool _isSosActive = false;
+
+  // --------------------------------------------------------------------------
+  // 3. NATURAL CARTOGRAPHIC LABELS (EXACTLY AS WRITTEN IN OPENPLANETARY MAP)
+  // These render as pure, elegant map text directly on the surface in Satellite Mode
+  // --------------------------------------------------------------------------
+  final List<MarsMapLabel> _cartographicLabels = const [
+    // Major Regional Planitia (Bold, all-caps, letter-spaced)
+    MarsMapLabel(
+      name: 'CHRYSE PLANITIA',
+      location: LatLng(22.8, -23.8),
+      fontSize: 13.5,
+      isBold: true,
+      letterSpacing: 1.6,
+      opacity: 0.90,
+      width: 170,
+    ),
+
+    // Major Valleys / Valles / Colles (Italicized, elegant cartography)
+    MarsMapLabel(
+      name: 'Simud Valles',
+      location: LatLng(17.6, -21.6),
+      fontSize: 12.0,
+      isItalic: true,
+      isBold: true,
+      opacity: 0.85,
+      width: 130,
+    ),
+    MarsMapLabel(
+      name: 'Tiu Valles',
+      location: LatLng(17.4, -19.4),
+      fontSize: 12.0,
+      isItalic: true,
+      isBold: true,
+      opacity: 0.85,
+      width: 120,
+    ),
+    MarsMapLabel(
+      name: 'Oxia Colles',
+      location: LatLng(18.9, -15.8),
+      fontSize: 11.5,
+      isItalic: true,
+      isBold: true,
+      opacity: 0.85,
+      width: 120,
+    ),
+    MarsMapLabel(
+      name: 'Marte Vallis',
+      location: LatLng(15.2, -15.0),
+      fontSize: 11.0,
+      isItalic: true,
+      opacity: 0.80,
+      width: 110,
+    ),
+
+    // Craters & Local Geographical Features (Matching the picture exactly)
+    MarsMapLabel(name: 'Makhambet', location: LatLng(23.2, -24.6), fontSize: 9.0),
+    MarsMapLabel(name: 'Lismore', location: LatLng(22.2, -24.8), fontSize: 9.0),
+    MarsMapLabel(name: 'Sefadu', location: LatLng(23.4, -20.9), fontSize: 9.2),
+    MarsMapLabel(name: 'Calahorra', location: LatLng(21.8, -22.9), fontSize: 9.2),
+    MarsMapLabel(name: 'Swanage', location: LatLng(21.7, -19.6), fontSize: 9.0),
+    MarsMapLabel(name: 'Kipini', location: LatLng(21.4, -17.9), fontSize: 9.0),
+    MarsMapLabel(name: 'Grindavik', location: LatLng(21.0, -22.9), fontSize: 9.0),
+    MarsMapLabel(name: 'Nakusp', location: LatLng(20.7, -20.3), fontSize: 9.0),
+    MarsMapLabel(name: 'Lydda', location: LatLng(20.5, -18.6), fontSize: 9.0),
+    MarsMapLabel(name: 'Cefalù', location: LatLng(20.2, -23.6), fontSize: 9.0),
+    MarsMapLabel(name: 'Alamos', location: LatLng(20.0, -22.4), fontSize: 9.0),
+    MarsMapLabel(name: 'Wahoo', location: LatLng(19.8, -19.8), fontSize: 9.0),
+    MarsMapLabel(name: 'Kaup', location: LatLng(19.6, -19.1), fontSize: 8.8),
+    MarsMapLabel(name: 'Shawnee', location: LatLng(19.4, -18.1), fontSize: 8.8),
+    MarsMapLabel(name: 'Libertad', location: LatLng(19.7, -16.8), fontSize: 8.8),
+    MarsMapLabel(name: 'Yoro', location: LatLng(19.4, -16.1), fontSize: 8.8),
+    MarsMapLabel(name: 'Naar', location: LatLng(19.6, -25.2), fontSize: 8.8),
+    MarsMapLabel(name: 'Tarsus', location: LatLng(19.6, -24.0), fontSize: 8.8),
+    MarsMapLabel(name: 'Yar', location: LatLng(19.1, -23.1), fontSize: 8.8),
+    MarsMapLabel(name: 'Mut', location: LatLng(19.1, -20.6), fontSize: 8.5),
+    MarsMapLabel(name: 'Cave', location: LatLng(18.8, -20.6), fontSize: 8.5),
+    MarsMapLabel(name: 'Yuty', location: LatLng(18.9, -19.8), fontSize: 8.8),
+    MarsMapLabel(name: 'Wabash', location: LatLng(18.6, -19.7), fontSize: 8.5),
+    MarsMapLabel(name: 'Bled', location: LatLng(18.8, -18.5), fontSize: 8.5),
+    MarsMapLabel(name: 'Lod', location: LatLng(18.6, -18.5), fontSize: 8.5),
+    MarsMapLabel(name: 'Bok', location: LatLng(18.4, -18.5), fontSize: 8.5),
+    MarsMapLabel(name: 'Gold', location: LatLng(18.2, -18.5), fontSize: 8.5),
+    MarsMapLabel(name: 'Batoş', location: LatLng(18.9, -17.2), fontSize: 8.8),
+    MarsMapLabel(name: 'Belz', location: LatLng(18.7, -25.8), fontSize: 8.8),
+    MarsMapLabel(name: 'Taxco', location: LatLng(18.1, -24.0), fontSize: 8.8),
+    MarsMapLabel(name: 'Warra', location: LatLng(18.1, -22.8), fontSize: 8.8),
+    MarsMapLabel(name: 'Harnelin', location: LatLng(18.0, -19.3), fontSize: 8.8),
+    MarsMapLabel(name: 'Zir', location: LatLng(17.5, -22.2), fontSize: 8.8),
+    MarsMapLabel(name: 'Yala', location: LatLng(16.9, -23.2), fontSize: 8.8),
+    MarsMapLabel(name: 'Luck', location: LatLng(16.9, -22.0), fontSize: 8.8),
+    MarsMapLabel(name: 'Sōf', location: LatLng(16.3, -23.0), fontSize: 8.8),
+    MarsMapLabel(name: 'Zuni', location: LatLng(17.7, -17.8), fontSize: 8.8),
+    MarsMapLabel(name: 'Banff', location: LatLng(16.9, -18.6), fontSize: 8.5),
+    MarsMapLabel(name: 'Surt', location: LatLng(16.5, -18.6), fontSize: 8.5),
+    MarsMapLabel(name: 'Chur', location: LatLng(16.5, -17.6), fontSize: 8.5),
+    MarsMapLabel(name: 'Ribe', location: LatLng(16.1, -17.6), fontSize: 8.5),
+    MarsMapLabel(name: 'Lins', location: LatLng(15.8, -18.3), fontSize: 8.5),
+    MarsMapLabel(name: 'Kok', location: LatLng(15.7, -17.3), fontSize: 8.5),
+    MarsMapLabel(name: 'Yat', location: LatLng(17.1, -16.8), fontSize: 8.5),
+    MarsMapLabel(name: 'Tile', location: LatLng(16.9, -16.8), fontSize: 8.5),
+  ];
 
   @override
   void initState() {
     super.initState();
-    final double dist = const Distance().distance(_originLocation, _destinationLocation) / 1000.0;
-    _formattedDistance = dist.toStringAsFixed(1) + ' km';
     _mapController = MapController();
+
+    // Pulse animation for radar markers
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat();
+
+    // Calculate real-time straight-line distance
+    final double distanceMeters = const Distance().distance(
+      _originLocation,
+      _destinationLocation,
+    );
+    _distanceKm = distanceMeters / 1000.0;
+    _formattedDistance = '${_distanceKm.toStringAsFixed(1)} km';
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  void _toggleMapView() {
+    setState(() {
+      _isSatelliteView = !_isSatelliteView;
+    });
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF131822),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(
+            color: _isSatelliteView ? const Color(0xFF00E5FF) : const Color(0xFF00E676),
+          ),
+        ),
+        content: Row(
+          children: [
+            Icon(
+              _isSatelliteView ? Icons.satellite_alt_rounded : Icons.terrain_rounded,
+              color: _isSatelliteView ? const Color(0xFF00E5FF) : const Color(0xFF00E676),
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              _isSatelliteView
+                  ? 'SWITCHED TO SATELLITE VIEW'
+                  : 'SWITCHED TO NORMAL TERRAIN',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _recenterOnOrigin() {
+    _mapController.move(_originLocation, 6.2);
+  }
+
+  void _zoomIn() {
+    final currentZoom = _mapController.camera.zoom;
+    _mapController.move(_mapController.camera.center, currentZoom + 1.0);
+  }
+
+  void _zoomOut() {
+    final currentZoom = _mapController.camera.zoom;
+    _mapController.move(_mapController.camera.center, currentZoom - 1.0);
+  }
+
+  void _toggleSos() {
+    setState(() {
+      _isSosActive = !_isSosActive;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FlutterMap(
-        mapController: _mapController,
-        options: // Enforce standard Web Mercator EPSG:3857 (do not override CRS to prevent white screen)
-        options: const MapOptions(
-          initialCenter: LatLng(21.1483, -21.2798),
-          initialZoom: 6.2,
-          minZoom: 2.0,
-          maxZoom: 12.0,
-          cameraConstraint: CameraConstraint.contain(
-            bounds: LatLngBounds(const LatLng(-85.0, -180.0), const LatLng(85.0, 180.0)),
-          ),
-        ),
+      body: Stack(
         children: [
-          PolylineLayer(
-            polylines: [
-              Polyline(
-                points: [_originLocation, _destinationLocation],
-                color: const Color(0xFF00E676).withOpacity(0.35),
-                strokeWidth: 7.0,
+          // ==================================================================
+          // 1. FLUTTER_MAP ENGINE: DEFAULT WEB MERCATOR (EPSG:3857)
+          // ==================================================================
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              // Default Web Mercator is used (do NOT override CRS to prevent white screen)
+              initialCenter: _chryseCenter,
+              initialZoom: _initialZoom,
+              minZoom: _minZoom,
+              maxZoom: _maxZoom,
+              // Planetary bounds prevent crashes when panning
+              cameraConstraint: CameraConstraint.contain(
+                bounds: _planetaryBounds,
               ),
-              Polyline(
-                points: [_originLocation, _destinationLocation],
-                color: const Color(0xFF00E676),
-                strokeWidth: 3.5,
-                pattern: StrokePattern.dashed(segments: const [10, 6]),
+            ),
+            children: [
+              // Dynamic TileLayer Swapped by State (Key ensures instant clean re-render)
+              TileLayer(
+                key: ValueKey<bool>(_isSatelliteView),
+                urlTemplate: _isSatelliteView
+                    // SATELLITE VIEW: NASA Mars Trek Realistic Color Surface Stream
+                    ? 'https://trek.nasa.gov/tiles/Mars/EQ/Mars_MOLA_blend200ppx_HRSC_ClrShade_clon0dd_200mpp_lzw/1.0.0/default/default028mm/{z}/{y}/{x}.jpg'
+                    // NORMAL TERRAIN VIEW: OpenPlanetary Mars Vector Cartography
+                    : 'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/all/{z}/{x}/{y}.png',
+                fallbackUrl:
+                    // Resilient fallback to OpenPlanetary basemap if any tile fails
+                    'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/all/{z}/{x}/{y}.png',
+                userAgentPackageName: 'org.spaceapps.aresnav',
+                maxZoom: _maxZoom,
+                minZoom: _minZoom,
+                tileProvider: NetworkTileProvider(
+                  headers: const {
+                    'User-Agent': 'AresNav/1.0 (org.spaceapps.aresnav; Flutter)',
+                    'Accept': 'image/webp,image/png,image/jpeg,*/*',
+                  },
+                ),
+              ),
+
+              // ==============================================================
+              // NATURAL CARTOGRAPHIC LABELS ON SATELLITE MODE
+              // In Normal mode, labels are already drawn inside the OPM tiles.
+              // In Satellite mode, this renders them as pure, clean text directly
+              // on the surface, exactly matching the appearance in the picture!
+              // ==============================================================
+              if (_isSatelliteView)
+                MarkerLayer(
+                  markers: _cartographicLabels.map((label) {
+                    return Marker(
+                      point: label.location,
+                      width: label.width,
+                      height: 24,
+                      alignment: Alignment.center,
+                      child: Text(
+                        label.name,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: label.fontSize,
+                          fontStyle: label.isItalic ? FontStyle.italic : FontStyle.normal,
+                          fontWeight: label.isBold ? FontWeight.bold : FontWeight.w500,
+                          letterSpacing: label.letterSpacing,
+                          color: Colors.white.withOpacity(label.opacity),
+                          // Subtle halo ensures readability over satellite textures without boxes
+                          shadows: const [
+                            Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 1)),
+                            Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, -1)),
+                            Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(1, 0)),
+                            Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(-1, 0)),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+
+              // Planned Route: Dashed neon-green line connecting Origin to Destination
+              PolylineLayer(
+                polylines: [
+                  // Outer soft glowing aura
+                  Polyline(
+                    points: [_originLocation, _destinationLocation],
+                    color: const Color(0xFF00E676).withOpacity(0.35),
+                    strokeWidth: 7.0,
+                  ),
+                  // Core dashed walking line
+                  Polyline(
+                    points: [_originLocation, _destinationLocation],
+                    color: const Color(0xFF00E676),
+                    strokeWidth: 3.5,
+                    pattern: StrokePattern.dashed(segments: const [10, 6]),
+                  ),
+                ],
+              ),
+
+              // Markers: Glowing Cyan Beacon (Origin) & Pulsing Red Pin (Destination)
+              MarkerLayer(
+                markers: [
+                  // Origin: Astronaut EVA-1 Location Marker
+                  Marker(
+                    point: _originLocation,
+                    width: 140,
+                    height: 75,
+                    alignment: Alignment.center,
+                    child: AnimatedBuilder(
+                      animation: _pulseController,
+                      builder: (context, _) {
+                        return AstronautCyanBeaconMarker(
+                          pulseProgress: _pulseController.value,
+                        );
+                      },
+                    ),
+                  ),
+
+                  // Destination: Red Waypoint Pin
+                  Marker(
+                    point: _destinationLocation,
+                    width: 140,
+                    height: 75,
+                    alignment: Alignment.center,
+                    child: AnimatedBuilder(
+                      animation: _pulseController,
+                      builder: (context, _) {
+                        return DestinationRedPinMarker(
+                          pulseProgress: _pulseController.value,
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          TileLayer(
-            key: ValueKey<bool>(_isSatelliteView),
-            urlTemplate: _isSatelliteView
-                ? 'https://trek.nasa.gov/tiles/Mars/EQ/Mars_MOLA_blend200ppx_HRSC_ClrShade_clon0dd_200mpp_lzw/1.0.0/default/default028mm/{z}/{y}/{x}.jpg'
-                : 'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/all/{z}/{x}/{y}.png',
-            userAgentPackageName: 'org.spaceapps.aresnav',
-            maxZoom: 12.0,
-            minZoom: 2.0,
+
+          // ==================================================================
+          // 2. EMERGENCY RED ALERT VIGNETTE (When SOS is Active)
+          // ==================================================================
+          if (_isSosActive)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFFFF3344), width: 8),
+                    gradient: RadialGradient(
+                      colors: [
+                        Colors.transparent,
+                        const Color(0xFFFF3344).withOpacity(0.22),
+                      ],
+                      radius: 1.0,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+          // ==================================================================
+          // 3. TOP FLOATING HEADER BAR (MATCHING REFERENCE DESIGN EXACTLY)
+          // ==================================================================
+          Align(
+            alignment: Alignment.topCenter,
+            child: SafeArea(
+              child: TopMissionHeaderBar(
+                distanceFormatted: _formattedDistance,
+                isSatelliteView: _isSatelliteView,
+                originLocation: _originLocation,
+                destinationLocation: _destinationLocation,
+                isSosActive: _isSosActive,
+              ),
+            ),
+          ),
+
+          // ==================================================================
+          // 4. RIGHT-HAND FLOATING CONTROLS: VIEW TOGGLE, RECENTER, ZOOM
+          // ==================================================================
+          Positioned(
+            right: 16,
+            top: 220,
+            child: Column(
+              children: [
+                // Layer View Toggle Button (Normal vs. Satellite)
+                _buildFloatingControlButton(
+                  icon: Icons.layers_rounded,
+                  tooltip: _isSatelliteView ? 'Switch to Normal Terrain' : 'Switch to Satellite View',
+                  highlight: _isSatelliteView,
+                  accentColor: _isSatelliteView ? const Color(0xFF00E5FF) : Colors.white70,
+                  onTap: _toggleMapView,
+                ),
+                const SizedBox(height: 12),
+
+                // Recenter Button (Jump to EVA-1)
+                _buildFloatingControlButton(
+                  icon: Icons.my_location_rounded,
+                  tooltip: 'Recenter on EVA-1',
+                  accentColor: const Color(0xFF00E676),
+                  onTap: _recenterOnOrigin,
+                ),
+                const SizedBox(height: 12),
+
+                // Zoom In
+                _buildFloatingControlButton(
+                  icon: Icons.add,
+                  tooltip: 'Zoom In',
+                  onTap: _zoomIn,
+                ),
+                const SizedBox(height: 6),
+
+                // Zoom Out
+                _buildFloatingControlButton(
+                  icon: Icons.remove,
+                  tooltip: 'Zoom Out',
+                  onTap: _zoomOut,
+                ),
+              ],
+            ),
+          ),
+
+          // ==================================================================
+          // 5. BOTTOM TACTICAL GUIDANCE CARD (MATCHING REFERENCE DESIGN)
+          // ==================================================================
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: SafeArea(
+              child: BottomTacticalGuidanceCard(
+                isSosActive: _isSosActive,
+                onToggleSos: _toggleSos,
+              ),
+            ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _toggleMapView,
-        child: const Icon(Icons.layers),
+    );
+  }
+
+  Widget _buildFloatingControlButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onTap,
+    Color accentColor = Colors.white,
+    bool highlight = false,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: const Color(0xDD1B1F27),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: highlight ? accentColor : Colors.white12,
+              width: 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.4),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Icon(icon, color: accentColor, size: 22),
+        ),
       ),
     );
   }
 }
 
-class AstronautCyanBeaconMarker extends StatelessWidget {
-  final double pulseProgress;
-  const AstronautCyanBeaconMarker({super.key, required this.pulseProgress});
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: 44,
-          height: 44,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 14 + (pulseProgress * 28),
-                height: 14 + (pulseProgress * 28),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFF00E5FF).withOpacity((1.0 - pulseProgress) * 0.75),
-                    width: 2.0,
-                  ),
-                ),
-              ),
-              Container(
-                width: 12,
-                height: 12,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(0xFF00E5FF),
-                  boxShadow: [BoxShadow(color: Color(0xFF00E5FF), blurRadius: 8, spreadRadius: 1)],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: const Color(0xDD0D0F14),
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: const Color(0xFF00E5FF), width: 0.8),
-          ),
-          child: const Text('EVA-1', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Color(0xFF00E5FF))),
-        ),
-      ],
-    );
-  }
-}
+// ============================================================================
+// TOP FLOATING HEADER BAR (MATCHING REFERENCE SCREENSHOT)
+// ============================================================================
 
-class DestinationRedPinMarker extends StatelessWidget {
-  final double pulseProgress;
-  const DestinationRedPinMarker({super.key, required this.pulseProgress});
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: 44,
-          height: 44,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 18 + (pulseProgress * 24),
-                height: 18 + (pulseProgress * 24),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFFFF3344).withOpacity((1.0 - pulseProgress) * 0.8),
-                    width: 2.0,
-                  ),
-                ),
-              ),
-              const Icon(Icons.location_on, size: 20, color: Color(0xFFFF3344)),
-            ],
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: const Color(0xDD0D0F14),
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: const Color(0xFFFF3344), width: 0.8),
-          ),
-          child: const Text('DEST', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Color(0xFFFF3344))),
-        ),
-      ],
-    );
-  }
-}
 class TopMissionHeaderBar extends StatelessWidget {
   final String distanceFormatted;
   final bool isSatelliteView;
@@ -339,8 +720,6 @@ class TopMissionHeaderBar extends StatelessWidget {
 // BOTTOM TACTICAL GUIDANCE CARD (MATCHING REFERENCE SCREENSHOT)
 // ============================================================================
 
-
-// Floating control dock utilities
 class BottomTacticalGuidanceCard extends StatelessWidget {
   final bool isSosActive;
   final VoidCallback onToggleSos;
@@ -446,3 +825,166 @@ class BottomTacticalGuidanceCard extends StatelessWidget {
 // ASTRONAUT GLOWING CYAN BEACON MARKER
 // ============================================================================
 
+class AstronautCyanBeaconMarker extends StatelessWidget {
+  final double pulseProgress;
+
+  const AstronautCyanBeaconMarker({
+    super.key,
+    required this.pulseProgress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 44,
+          height: 44,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Outer Glowing Cyan Radar Expansion Ring
+              Container(
+                width: 14 + (pulseProgress * 28),
+                height: 14 + (pulseProgress * 28),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF00E5FF).withOpacity((1.0 - pulseProgress) * 0.75),
+                    width: 2.0,
+                  ),
+                ),
+              ),
+
+              // Solid Center Cyan Core with Glow
+              Container(
+                width: 12,
+                height: 12,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFF00E5FF),
+                  boxShadow: [
+                    BoxShadow(color: Color(0xFF00E5FF), blurRadius: 8, spreadRadius: 1),
+                  ],
+                ),
+              ),
+
+              // Center White Pinpoint
+              Container(
+                width: 4,
+                height: 4,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Badge Tag
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xDD0D0F14),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: const Color(0xFF00E5FF), width: 0.8),
+          ),
+          child: const Text(
+            'EVA-1',
+            style: TextStyle(
+              fontSize: 8,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF00E5FF),
+              letterSpacing: 0.4,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// DESTINATION PULSING RED PIN MARKER
+// ============================================================================
+
+class DestinationRedPinMarker extends StatelessWidget {
+  final double pulseProgress;
+
+  const DestinationRedPinMarker({
+    super.key,
+    required this.pulseProgress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 44,
+          height: 44,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Expanding Red Pulse Ring
+              Container(
+                width: 18 + (pulseProgress * 24),
+                height: 18 + (pulseProgress * 24),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFFFF3344).withOpacity((1.0 - pulseProgress) * 0.8),
+                    width: 2.0,
+                  ),
+                ),
+              ),
+
+              // Static Red Inner Circle
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFFF3344).withOpacity(0.3),
+                  border: Border.all(color: const Color(0xFFFF3344), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(color: const Color(0xFFFF3344).withOpacity(0.6), blurRadius: 8),
+                  ],
+                ),
+              ),
+
+              // Pin Icon
+              const Icon(
+                Icons.location_on,
+                size: 20,
+                color: Color(0xFFFF3344),
+              ),
+            ],
+          ),
+        ),
+
+        // Destination Badge
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xDD0D0F14),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: const Color(0xFFFF3344), width: 0.8),
+          ),
+          child: const Text(
+            'DEST',
+            style: TextStyle(
+              fontSize: 8,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFFF3344),
+              letterSpacing: 0.4,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
