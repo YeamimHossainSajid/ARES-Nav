@@ -97,3 +97,54 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> {
     );
   }
 }
+
+class AstronautCyanBeaconMarker extends StatelessWidget {
+  final double pulseProgress;
+  const AstronautCyanBeaconMarker({super.key, required this.pulseProgress});
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 44,
+          height: 44,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 14 + (pulseProgress * 28),
+                height: 14 + (pulseProgress * 28),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF00E5FF).withOpacity((1.0 - pulseProgress) * 0.75),
+                    width: 2.0,
+                  ),
+                ),
+              ),
+              Container(
+                width: 12,
+                height: 12,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFF00E5FF),
+                  boxShadow: [BoxShadow(color: Color(0xFF00E5FF), blurRadius: 8, spreadRadius: 1)],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xDD0D0F14),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: const Color(0xFF00E5FF), width: 0.8),
+          ),
+          child: const Text('EVA-1', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Color(0xFF00E5FF))),
+        ),
+      ],
+    );
+  }
+}
