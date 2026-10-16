@@ -64,6 +64,21 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> {
           ),
         ),
         children: [
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: [_originLocation, _destinationLocation],
+                color: const Color(0xFF00E676).withOpacity(0.35),
+                strokeWidth: 7.0,
+              ),
+              Polyline(
+                points: [_originLocation, _destinationLocation],
+                color: const Color(0xFF00E676),
+                strokeWidth: 3.5,
+                pattern: StrokePattern.dashed(segments: const [10, 6]),
+              ),
+            ],
+          ),
           TileLayer(
             key: ValueKey<bool>(_isSatelliteView),
             urlTemplate: _isSatelliteView
