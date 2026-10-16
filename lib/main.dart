@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 void main() {
   runApp(const AresNavApp());
@@ -18,7 +20,38 @@ class AresNavApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF0D0F14),
         fontFamily: 'monospace',
       ),
-      home: const Scaffold(body: Center(child: Text('ARES Nav Initializing...'))),
+      home: const AresNavMapScreen(),
+    );
+  }
+}
+
+class AresNavMapScreen extends StatefulWidget {
+  const AresNavMapScreen({super.key});
+
+  @override
+  State<AresNavMapScreen> createState() => _AresNavMapScreenState();
+}
+
+class _AresNavMapScreenState extends State<AresNavMapScreen> {
+  late final MapController _mapController;
+
+  @override
+  void initState() {
+    super.initState();
+    _mapController = MapController();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: FlutterMap(
+        mapController: _mapController,
+        options: const MapOptions(
+          initialCenter: LatLng(21.1483, -21.2798),
+          initialZoom: 6.2,
+        ),
+        children: const [],
+      ),
     );
   }
 }
