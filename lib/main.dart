@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 
 void main() {
   runApp(const AresNavApp());
+  void _toggleMapView() => setState(() => _isSatelliteView = !_isSatelliteView);
 }
 
 class AresNavApp extends StatelessWidget {
@@ -67,6 +68,10 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> {
             minZoom: 2.0,
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _toggleMapView,
+        child: const Icon(Icons.layers),
       ),
     );
   }
