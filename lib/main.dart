@@ -46,6 +46,7 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> {
     return Scaffold(
       body: FlutterMap(
         mapController: _mapController,
+        options: // Enforce standard Web Mercator EPSG:3857 (do not override CRS to prevent white screen)
         options: const MapOptions(
           initialCenter: LatLng(21.1483, -21.2798),
           initialZoom: 6.2,
