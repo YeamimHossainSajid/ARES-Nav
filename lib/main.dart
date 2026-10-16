@@ -339,3 +339,5 @@ class TopMissionHeaderBar extends StatelessWidget {
 // BOTTOM TACTICAL GUIDANCE CARD (MATCHING REFERENCE SCREENSHOT)
 // ============================================================================
 
+
+// Floating control dock utilities
