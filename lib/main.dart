@@ -191,3 +191,151 @@ class DestinationRedPinMarker extends StatelessWidget {
     );
   }
 }
+class TopMissionHeaderBar extends StatelessWidget {
+  final String distanceFormatted;
+  final bool isSatelliteView;
+  final LatLng originLocation;
+  final LatLng destinationLocation;
+  final bool isSosActive;
+
+  const TopMissionHeaderBar({
+    super.key,
+    required this.distanceFormatted,
+    required this.isSatelliteView,
+    required this.originLocation,
+    required this.destinationLocation,
+    required this.isSosActive,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xF212171E),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isSosActive ? const Color(0xFFFF3344) : Colors.white12,
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Row 1: Green Status Dot + Sector Name + View Mode Pill
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFF00E676),
+                        boxShadow: [
+                          BoxShadow(color: Color(0xFF00E676), blurRadius: 6),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'ARES NAV // CHRYSE PLANITIA SECTOR',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.6,
+                        color: Color(0xFF00E5FF),
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E2530),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: Text(
+                    isSatelliteView ? 'SATELLITE VIEW' : 'NORMAL TERRAIN',
+                    style: TextStyle(
+                      fontSize: 8.5,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.6,
+                      color: isSatelliteView ? const Color(0xFF00E5FF) : Colors.white70,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Row 2: Navigation Icon + Target Distance Readout
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.navigation,
+                  color: Color(0xFF00E676),
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      const TextSpan(
+                        text: 'Target Distance: ',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      TextSpan(
+                        text: distanceFormatted,
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF00E676),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+
+            // Row 3: Origin -> Destination Coordinate Path
+            Text(
+              'EVA-1: ${originLocation.latitude.toStringAsFixed(4)}° N, ${originLocation.longitude.toStringAsFixed(4)}° W   →   DEST: ${destinationLocation.latitude.toStringAsFixed(4)}° N, ${destinationLocation.longitude.toStringAsFixed(4)}° W',
+              style: TextStyle(
+                fontSize: 8.5,
+                fontWeight: FontWeight.w600,
+                color: Colors.white.withOpacity(0.65),
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// BOTTOM TACTICAL GUIDANCE CARD (MATCHING REFERENCE SCREENSHOT)
+// ============================================================================
+
