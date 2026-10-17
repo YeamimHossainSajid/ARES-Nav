@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
+import 'models/science_data.dart';
+import 'widgets/weather_hud_pill.dart';
+import 'widgets/science_layer_control_sheet.dart';
+import 'widgets/science_detail_dialog.dart';
 
 /// ============================================================================
 /// ARES NAV (Martian Planetary Navigation & Nomenclature Search)
@@ -179,6 +183,13 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
   late double _distanceKm;
   late String _formattedDistance;
   bool _isSosActive = false;
+
+  // NASA Multi-Mission Science Layer States (Phase 1)
+  bool _showMolaHazards = true;
+  bool _showCrismMinerals = true;
+  bool _showThemisIce = true;
+  bool _showWeatherHud = true;
+  final MarsWeatherTelemetry _weatherTelemetry = MarsWeatherTelemetry.currentChryseTelemetry();
 
   @override
   void initState() {
@@ -378,6 +389,112 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
     _flyTo(_originLocation, 6.2);
   }
 
+  void _openScienceLayersSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return ScienceLayerControlSheet(
+            showMolaHazards: _showMolaHazards,
+            showCrismMinerals: _showCrismMinerals,
+            showThemisIce: _showThemisIce,
+            showWeatherHud: _showWeatherHud,
+            onToggleMola: (val) {
+              setModalState(() => _showMolaHazards = val);
+              setState(() => _showMolaHazards = val);
+            },
+            onToggleCrism: (val) {
+              setModalState(() => _showCrismMinerals = val);
+              setState(() => _showCrismMinerals = val);
+            },
+            onToggleThemis: (val) {
+              setModalState(() => _showThemisIce = val);
+              setState(() => _showThemisIce = val);
+            },
+            onToggleWeather: (val) {
+              setModalState(() => _showWeatherHud = val);
+              setState(() => _showWeatherHud = val);
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  void _openWeatherTelemetryConsole() {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.65),
+      builder: (context) => WeatherTelemetryConsoleDialog(
+        telemetry: _weatherTelemetry,
+      ),
+    );
+  }
+
+  void _showScienceDetail(dynamic target) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.65),
+      builder: (context) => ScienceDetailDialog(
+        target: target,
+        onSetAsWaypoint: () {
+          LatLng targetPoint;
+          String targetName;
+          if (target is MolaSlopeHazard) {
+            targetPoint = target.centroid;
+            targetName = target.name;
+          } else if (target is CrismMineralDeposit) {
+            targetPoint = target.centroid;
+            targetName = target.mineralName;
+          } else if (target is ThemisIceDeposit) {
+            targetPoint = target.centroid;
+            targetName = target.unitName;
+          } else {
+            return;
+          }
+
+          setState(() {
+            _destinationLocation = targetPoint;
+            _recomputeDistance();
+          });
+
+          _flyTo(targetPoint, 7.8);
+
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: const Color(0xFF131822),
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: const BorderSide(color: Color(0xFF00E5FF)),
+              ),
+              content: Row(
+                children: [
+                  const Icon(Icons.science_rounded, color: Color(0xFF00E5FF), size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'SCIENCE WAYPOINT SET: ${targetName.toUpperCase()} ($_formattedDistance)',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   void _zoomIn() {
     final currentZoom = _mapController.camera.zoom;
     _mapController.move(_mapController.camera.center, currentZoom + 1.0);
@@ -455,6 +572,48 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
                   ),
                 ),
 
+              // ==============================================================
+              // NASA SCIENCE MISSION DATA OVERLAYS (POLYGON LAYERS)
+              // ==============================================================
+              // 1. MGS MOLA Slope Hazards (>20° Incline Warning)
+              if (_showMolaHazards)
+                PolygonLayer(
+                  polygons: MarsScienceRepository.molaHazards.map((hazard) {
+                    return Polygon(
+                      points: hazard.polygon,
+                      color: hazard.fillColor,
+                      borderColor: hazard.borderColor,
+                      borderStrokeWidth: 2.0,
+                    );
+                  }).toList(),
+                ),
+
+              // 2. MRO CRISM Hydrated Mineralogy & Clays
+              if (_showCrismMinerals)
+                PolygonLayer(
+                  polygons: MarsScienceRepository.crismDeposits.map((deposit) {
+                    return Polygon(
+                      points: deposit.polygon,
+                      color: deposit.fillColor,
+                      borderColor: deposit.borderColor,
+                      borderStrokeWidth: 2.0,
+                    );
+                  }).toList(),
+                ),
+
+              // 3. Mars Odyssey THEMIS Subsurface Ice Ground Units
+              if (_showThemisIce)
+                PolygonLayer(
+                  polygons: MarsScienceRepository.themisIceUnits.map((ice) {
+                    return Polygon(
+                      points: ice.polygon,
+                      color: ice.fillColor,
+                      borderColor: ice.borderColor,
+                      borderStrokeWidth: 2.0,
+                    );
+                  }).toList(),
+                ),
+
               // Traversal Route: Dashed neon-green line connecting Origin to Target
               PolylineLayer(
                 polylines: [
@@ -474,9 +633,136 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
                 ],
               ),
 
-              // Markers: Origin Beacon, Route Waypoint, and Animated Bouncing Search Pin
+              // Markers: Origin Beacon, Route Waypoint, Science Badges, and Animated Bouncing Search Pin
               MarkerLayer(
                 markers: [
+                  // ----------------------------------------------------------
+                  // NASA SCIENCE TARGET CENTROID BADGES (INTERACTIVE TAPS)
+                  // ----------------------------------------------------------
+                  // MGS MOLA Hazard Centroid Badges
+                  if (_showMolaHazards)
+                    ...MarsScienceRepository.molaHazards.map((hazard) => Marker(
+                      point: hazard.centroid,
+                      width: 105,
+                      height: 30,
+                      alignment: Alignment.center,
+                      child: GestureDetector(
+                        onTap: () => _showScienceDetail(hazard),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xF210141E),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: hazard.displayColor, width: 1.2),
+                            boxShadow: [
+                              BoxShadow(color: hazard.displayColor.withOpacity(0.4), blurRadius: 6),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.warning_amber_rounded, size: 12, color: hazard.displayColor),
+                              const SizedBox(width: 3),
+                              Text(
+                                '${hazard.averageSlopeDeg.toStringAsFixed(0)}° SLOPE',
+                                style: TextStyle(
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: hazard.displayColor,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )),
+
+                  // MRO CRISM Mineralogy Centroid Badges
+                  if (_showCrismMinerals)
+                    ...MarsScienceRepository.crismDeposits.map((deposit) => Marker(
+                      point: deposit.centroid,
+                      width: 110,
+                      height: 30,
+                      alignment: Alignment.center,
+                      child: GestureDetector(
+                        onTap: () => _showScienceDetail(deposit),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xF210141E),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: deposit.categoryColor, width: 1.2),
+                            boxShadow: [
+                              BoxShadow(color: deposit.categoryColor.withOpacity(0.4), blurRadius: 6),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.biotech_rounded, size: 12, color: deposit.categoryColor),
+                              const SizedBox(width: 3),
+                              Flexible(
+                                child: Text(
+                                  deposit.category == MineralCategory.phyllosilicates
+                                      ? 'CLAYS 94%'
+                                      : deposit.category == MineralCategory.sulfates
+                                          ? 'SULFATE'
+                                          : 'CARBONATE',
+                                  style: TextStyle(
+                                    fontSize: 8.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: deposit.categoryColor,
+                                    fontFamily: 'monospace',
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )),
+
+                  // Mars Odyssey THEMIS Subsurface Ice Badges
+                  if (_showThemisIce)
+                    ...MarsScienceRepository.themisIceUnits.map((ice) => Marker(
+                      point: ice.centroid,
+                      width: 105,
+                      height: 30,
+                      alignment: Alignment.center,
+                      child: GestureDetector(
+                        onTap: () => _showScienceDetail(ice),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xF210141E),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: ice.displayColor, width: 1.2),
+                            boxShadow: [
+                              BoxShadow(color: ice.displayColor.withOpacity(0.4), blurRadius: 6),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.ac_unit_rounded, size: 12, color: ice.displayColor),
+                              const SizedBox(width: 3),
+                              Text(
+                                'ICE WEH ${ice.waterEquivalentHydrogenPct.toStringAsFixed(0)}%',
+                                style: TextStyle(
+                                  fontSize: 8.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: ice.displayColor,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )),
+
                   // Origin: Astronaut EVA-1 Location Beacon
                   Marker(
                     point: _originLocation,
@@ -559,6 +845,16 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
             child: SafeArea(
               child: Column(
                 children: [
+                  // NASA Multi-Mission Science Overlays Selector Button
+                  _buildFloatingControlButton(
+                    icon: Icons.science_rounded,
+                    tooltip: 'NASA Science Mission Overlays',
+                    highlight: _showMolaHazards || _showCrismMinerals || _showThemisIce,
+                    accentColor: const Color(0xFF00E5FF),
+                    onTap: _openScienceLayersSheet,
+                  ),
+                  const SizedBox(height: 12),
+
                   // Layer View Toggle Button (Normal vs. Satellite)
                   _buildFloatingControlButton(
                     icon: Icons.layers_rounded,
@@ -806,6 +1102,19 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
                                 );
                               },
                             ),
+                          ),
+                        ),
+                      ),
+
+                    // Perseverance MEDA Real-Time Weather HUD Pill (Displayed when suggestions are closed)
+                    if (!_showSuggestions && _showWeatherHud)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: WeatherHudPill(
+                            telemetry: _weatherTelemetry,
+                            onTap: _openWeatherTelemetryConsole,
                           ),
                         ),
                       ),
