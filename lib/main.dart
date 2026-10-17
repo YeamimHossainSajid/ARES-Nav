@@ -1,12 +1,14 @@
+import 'dart:convert';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 /// ============================================================================
-/// ARES NAV (Chryse Planitia Sector)
-/// Web Mercator (EPSG:3857) Planetary Map Engine with Normal/Satellite Toggle
-/// and Natural Cartographic Area Names in Satellite View (Matching OpenPlanetary)
+/// ARES NAV (Martian Planetary Navigation & Nomenclature Search)
+/// Web Mercator (EPSG:3857) Map Engine with NASA Trek Satellite + OpenPlanetary
+/// Overlay and Google Maps-style Planetary Nomenclature Autocomplete & Bouncing Pin
 /// ============================================================================
 
 void main() {
@@ -19,7 +21,7 @@ class AresNavApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ARES Nav - Chryse Planitia Sector',
+      title: 'ARES Nav - Mars Tactical Navigation',
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.dark,
       theme: ThemeData(
@@ -39,6 +41,99 @@ class AresNavApp extends StatelessWidget {
   }
 }
 
+// ============================================================================
+// 1. DATA MODEL: MARS NOMENCLATURE FEATURE (USGS IAU GAZETTEER)
+// ============================================================================
+
+class MarsFeature {
+  final String id;
+  final String name;
+  final String type;
+  final LatLng location;
+  final double diameterKm;
+  final int elevationM;
+  final String description;
+
+  const MarsFeature({
+    required this.id,
+    required this.name,
+    required this.type,
+    required this.location,
+    required this.diameterKm,
+    required this.elevationM,
+    required this.description,
+  });
+
+  factory MarsFeature.fromJson(Map<String, dynamic> json) {
+    final double rawLat = (json['lat'] as num).toDouble();
+    final double rawLon = (json['lon'] as num).toDouble();
+
+    // Planetocentric to Web Mercator Longitude Normalization:
+    // USGS data often uses 0..360° positive East. Convert >180° to -180..+180°.
+    final double normLon = rawLon > 180.0 ? rawLon - 360.0 : rawLon;
+    // Safe latitude clamping to prevent Web Mercator tangent infinity
+    final double normLat = rawLat.clamp(-85.0, 85.0);
+
+    return MarsFeature(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      type: json['type'] as String,
+      location: LatLng(normLat, normLon),
+      diameterKm: (json['diameter_km'] as num).toDouble(),
+      elevationM: (json['elevation_m'] as num).toInt(),
+      description: json['description'] as String,
+    );
+  }
+
+  /// Calculates optimal camera zoom depending on the feature's physical scale
+  double get recommendedZoom {
+    if (diameterKm > 2000) return 4.0;
+    if (diameterKm > 800) return 4.8;
+    if (diameterKm > 200) return 5.8;
+    if (diameterKm > 50) return 6.8;
+    if (diameterKm > 10) return 7.8;
+    return 8.6;
+  }
+}
+
+// ============================================================================
+// 2. SEARCH SERVICE: FAST LOCAL IN-MEMORY INDEXING
+// ============================================================================
+
+class MarsSearchService {
+  List<MarsFeature> _features = [];
+  bool _isLoaded = false;
+
+  bool get isLoaded => _isLoaded;
+  List<MarsFeature> get allFeatures => _features;
+
+  Future<void> loadFeatures() async {
+    try {
+      final String jsonStr = await rootBundle.loadString('assets/data/mars_nomenclature.json');
+      final List<dynamic> rawList = jsonDecode(jsonStr) as List<dynamic>;
+      _features = rawList.map((item) => MarsFeature.fromJson(item as Map<String, dynamic>)).toList();
+      _isLoaded = true;
+    } catch (e) {
+      debugPrint('Failed to load mars nomenclature dataset: $e');
+    }
+  }
+
+  List<MarsFeature> search(String query) {
+    if (query.trim().isEmpty) return [];
+    final cleanQuery = query.toLowerCase().trim();
+
+    return _features.where((f) {
+      final matchName = f.name.toLowerCase().contains(cleanQuery);
+      final matchType = f.type.toLowerCase().contains(cleanQuery);
+      return matchName || matchType;
+    }).toList();
+  }
+}
+
+// ============================================================================
+// 3. MAIN MAP SCREEN
+// ============================================================================
+
 class AresNavMapScreen extends StatefulWidget {
   const AresNavMapScreen({super.key});
 
@@ -46,12 +141,21 @@ class AresNavMapScreen extends StatefulWidget {
   State<AresNavMapScreen> createState() => _AresNavMapScreenState();
 }
 
-class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerProviderStateMixin {
+class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProviderStateMixin {
   late final MapController _mapController;
   late final AnimationController _pulseController;
+  late final AnimationController _flyToController;
+
+  // Search Engine
+  final MarsSearchService _searchService = MarsSearchService();
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  List<MarsFeature> _searchResults = [];
+  bool _showSuggestions = false;
+  MarsFeature? _selectedFeature;
 
   // --------------------------------------------------------------------------
-  // 1. SPATIAL PARAMETERS & COORDINATES (Chryse Planitia Sector)
+  // SPATIAL PARAMETERS & COORDINATES (Chryse Planitia Sector Default)
   // --------------------------------------------------------------------------
   static const LatLng _chryseCenter = LatLng(21.1483, -21.2798);
   static const double _initialZoom = 6.2;
@@ -61,25 +165,19 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
   // Origin: Astronaut EVA-1 Base Camp in Chryse Planitia
   static const LatLng _originLocation = LatLng(21.1483, -21.2798);
 
-  // Target Destination: Outcrop Delta
-  static const LatLng _destinationLocation = LatLng(22.4200, -18.8500);
+  // Active Target Destination (Dynamic, can be changed via search)
+  LatLng _destinationLocation = const LatLng(22.4200, -18.8500);
 
-  // Planetary Camera Bounds (Safe Web Mercator latitude limits to prevent infinity crash)
+  // Planetary Camera Bounds (Safe Web Mercator limits)
   final LatLngBounds _planetaryBounds = LatLngBounds(
     const LatLng(-85.0, -180.0),
     const LatLng(85.0, 180.0),
   );
 
-  // --------------------------------------------------------------------------
-  // 2. STATE MANAGEMENT: NORMAL TERRAIN VS. SATELLITE VIEW
-  // --------------------------------------------------------------------------
+  // State Management
   bool _isSatelliteView = false;
-
-  // Calculated distance variables
-  late final double _distanceKm;
-  late final String _formattedDistance;
-
-  // Emergency SOS Mode
+  late double _distanceKm;
+  late String _formattedDistance;
   bool _isSosActive = false;
 
   @override
@@ -93,7 +191,27 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
       duration: const Duration(milliseconds: 2000),
     )..repeat();
 
-    // Calculate real-time straight-line distance
+    // Fly-to smooth animation controller
+    _flyToController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+
+    _recomputeDistance();
+
+    // Load offline USGS Martian nomenclature dataset
+    _searchService.loadFeatures().then((_) {
+      if (mounted) setState(() {});
+    });
+
+    _searchFocusNode.addListener(() {
+      setState(() {
+        _showSuggestions = _searchFocusNode.hasFocus && _searchController.text.isNotEmpty;
+      });
+    });
+  }
+
+  void _recomputeDistance() {
     final double distanceMeters = const Distance().distance(
       _originLocation,
       _destinationLocation,
@@ -104,9 +222,117 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
 
   @override
   void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
     _pulseController.dispose();
+    _flyToController.dispose();
     _mapController.dispose();
     super.dispose();
+  }
+
+  // --------------------------------------------------------------------------
+  // CAMERA FLY-TO / PAN INTERPOLATION (60 FPS CURVED MOTION)
+  // --------------------------------------------------------------------------
+  void _flyTo(LatLng targetCenter, double targetZoom) {
+    final startCenter = _mapController.camera.center;
+    final startZoom = _mapController.camera.zoom;
+
+    _flyToController.stop();
+    _flyToController.reset();
+
+    final latTween = Tween<double>(begin: startCenter.latitude, end: targetCenter.latitude);
+    final lonTween = Tween<double>(begin: startCenter.longitude, end: targetCenter.longitude);
+    final zoomTween = Tween<double>(begin: startZoom, end: targetZoom);
+
+    final Animation<double> curved = CurvedAnimation(
+      parent: _flyToController,
+      curve: Curves.fastOutSlowIn,
+    );
+
+    void listener() {
+      final lat = latTween.evaluate(curved);
+      final lon = lonTween.evaluate(curved);
+      final zoom = zoomTween.evaluate(curved);
+      _mapController.move(LatLng(lat, lon), zoom);
+    }
+
+    _flyToController.addListener(listener);
+    _flyToController.forward().then((_) {
+      _flyToController.removeListener(listener);
+    });
+  }
+
+  void _onSearchChanged(String query) {
+    if (query.trim().isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _showSuggestions = false;
+      });
+      return;
+    }
+
+    final results = _searchService.search(query);
+    setState(() {
+      _searchResults = results;
+      _showSuggestions = true;
+    });
+  }
+
+  void _selectFeature(MarsFeature feature) {
+    _searchFocusNode.unfocus();
+    setState(() {
+      _selectedFeature = feature;
+      _searchController.text = feature.name;
+      _showSuggestions = false;
+    });
+
+    // Execute smooth 60 FPS fly-to camera movement
+    _flyTo(feature.location, feature.recommendedZoom);
+  }
+
+  void _setAsNavigationDestination(MarsFeature feature) {
+    setState(() {
+      _destinationLocation = feature.location;
+      _recomputeDistance();
+    });
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF131822),
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: const BorderSide(color: Color(0xFF00E676)),
+        ),
+        content: Row(
+          children: [
+            const Icon(Icons.navigation_rounded, color: Color(0xFF00E676), size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'TARGET SET: ${feature.name.toUpperCase()} ($_formattedDistance)',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _searchResults = [];
+      _showSuggestions = false;
+      _selectedFeature = null;
+    });
   }
 
   void _toggleMapView() {
@@ -135,9 +361,7 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
             ),
             const SizedBox(width: 10),
             Text(
-              _isSatelliteView
-                  ? 'SWITCHED TO SATELLITE VIEW'
-                  : 'SWITCHED TO NORMAL TERRAIN',
+              _isSatelliteView ? 'SWITCHED TO SATELLITE VIEW' : 'SWITCHED TO NORMAL TERRAIN',
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
@@ -151,7 +375,7 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
   }
 
   void _recenterOnOrigin() {
-    _mapController.move(_originLocation, 6.2);
+    _flyTo(_originLocation, 6.2);
   }
 
   void _zoomIn() {
@@ -164,15 +388,10 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
     _mapController.move(_mapController.camera.center, currentZoom - 1.0);
   }
 
-  void _toggleSos() {
-    setState(() {
-      _isSosActive = !_isSosActive;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // ==================================================================
@@ -181,27 +400,30 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              // Default Web Mercator is used (do NOT override CRS to prevent white screen)
               initialCenter: _chryseCenter,
               initialZoom: _initialZoom,
               minZoom: _minZoom,
               maxZoom: _maxZoom,
-              // Planetary bounds prevent crashes when panning
               cameraConstraint: CameraConstraint.contain(
                 bounds: _planetaryBounds,
               ),
+              onTap: (_, __) {
+                if (_showSuggestions || _searchFocusNode.hasFocus) {
+                  _searchFocusNode.unfocus();
+                  setState(() => _showSuggestions = false);
+                }
+              },
             ),
             children: [
-              // Dynamic TileLayer Swapped by State (Key ensures instant clean re-render)
+              // Dynamic Base Tile Layer
               TileLayer(
                 key: ValueKey<bool>(_isSatelliteView),
                 urlTemplate: _isSatelliteView
-                    // SATELLITE VIEW: NASA Mars Trek Realistic Color Surface Stream
+                    // SATELLITE VIEW: NASA Mars Trek High-Resolution Surface Mosaic
                     ? 'https://trek.nasa.gov/tiles/Mars/EQ/Mars_MOLA_blend200ppx_HRSC_ClrShade_clon0dd_200mpp_lzw/1.0.0/default/default028mm/{z}/{y}/{x}.jpg'
                     // NORMAL TERRAIN VIEW: OpenPlanetary Mars Vector Cartography
                     : 'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/all/{z}/{x}/{y}.png',
                 fallbackUrl:
-                    // Resilient fallback to OpenPlanetary basemap if any tile fails
                     'https://cartocdn-gusc.global.ssl.fastly.net/opmbuilder/api/v1/map/named/opm-mars-basemap-v0-2/all/{z}/{x}/{y}.png',
                 userAgentPackageName: 'org.spaceapps.aresnav',
                 maxZoom: _maxZoom,
@@ -214,12 +436,7 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
                 ),
               ),
 
-              // ==============================================================
-              // 2. OPENPLANETARY TRANSPARENT NOMENCLATURE TILE OVERLAY
-              // Streams the exact same IAU feature names and nomenclature layer
-              // from the non-satellite OpenPlanetary basemap directly over the
-              // NASA satellite imagery, covering every area name across Mars!
-              // ==============================================================
+              // Transparent OpenPlanetary Nomenclature Layer Overlay on Satellite View
               if (_isSatelliteView)
                 TileLayer(
                   key: const ValueKey<String>('opm_satellite_nomenclature_overlay'),
@@ -238,10 +455,10 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
                   ),
                 ),
 
-              // Planned Route: Dashed neon-green line connecting Origin to Destination
+              // Traversal Route: Dashed neon-green line connecting Origin to Target
               PolylineLayer(
                 polylines: [
-                  // Outer soft glowing aura
+                  // Soft outer glow corridor
                   Polyline(
                     points: [_originLocation, _destinationLocation],
                     color: const Color(0xFF00E676).withOpacity(0.35),
@@ -257,10 +474,10 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
                 ],
               ),
 
-              // Markers: Glowing Cyan Beacon (Origin) & Pulsing Red Pin (Destination)
+              // Markers: Origin Beacon, Route Waypoint, and Animated Bouncing Search Pin
               MarkerLayer(
                 markers: [
-                  // Origin: Astronaut EVA-1 Location Marker
+                  // Origin: Astronaut EVA-1 Location Beacon
                   Marker(
                     point: _originLocation,
                     width: 140,
@@ -276,7 +493,7 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
                     ),
                   ),
 
-                  // Destination: Red Waypoint Pin
+                  // Destination: Red Route Waypoint Pin
                   Marker(
                     point: _destinationLocation,
                     width: 140,
@@ -291,6 +508,22 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
                       },
                     ),
                   ),
+
+                  // ==========================================================
+                  // ANIMATED BOUNCING LOCATION PIN (SEARCH RESULT FEATURE)
+                  // Drops from above with realistic Curves.bounceOut physics!
+                  // ==========================================================
+                  if (_selectedFeature != null)
+                    Marker(
+                      key: ValueKey<String>('bouncing_pin_${_selectedFeature!.id}'),
+                      point: _selectedFeature!.location,
+                      width: 180,
+                      height: 85,
+                      alignment: Alignment.bottomCenter,
+                      child: BouncingPinMarker(
+                        feature: _selectedFeature!,
+                      ),
+                    ),
                 ],
               ),
             ],
@@ -318,11 +551,11 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
             ),
 
           // ==================================================================
-          // RIGHT-HAND FLOATING CONTROLS: VIEW TOGGLE, RECENTER, ZOOM
+          // 3. RIGHT-HAND FLOATING CONTROLS: VIEW TOGGLE, RECENTER, ZOOM
           // ==================================================================
           Positioned(
             right: 16,
-            top: 60,
+            top: 86,
             child: SafeArea(
               child: Column(
                 children: [
@@ -363,9 +596,261 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
               ),
             ),
           ),
+
+          // ==================================================================
+          // 4. SELECTED FEATURE DETAIL CARD (FLOATING BOTTOM BANNER)
+          // ==================================================================
+          if (_selectedFeature != null)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  child: FeatureDetailCard(
+                    feature: _selectedFeature!,
+                    isCurrentTarget: _destinationLocation.latitude == _selectedFeature!.location.latitude &&
+                        _destinationLocation.longitude == _selectedFeature!.location.longitude,
+                    onSetAsTarget: () => _setAsNavigationDestination(_selectedFeature!),
+                    onClose: () => setState(() => _selectedFeature = null),
+                  ),
+                ),
+              ),
+            ),
+
+          // ==================================================================
+          // 5. GOOGLE MAPS-STYLE SEARCH BAR & AUTOCOMPLETE DROPDOWN
+          // ==================================================================
+          Align(
+            alignment: Alignment.topCenter,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Search Bar Capsule
+                    Container(
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: const Color(0xF2121722),
+                        borderRadius: BorderRadius.circular(26),
+                        border: Border.all(
+                          color: _searchFocusNode.hasFocus
+                              ? const Color(0xFF00E5FF)
+                              : Colors.white.withOpacity(0.14),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.55),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.search_rounded,
+                            color: Color(0xFF00E5FF),
+                            size: 22,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              focusNode: _searchFocusNode,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              decoration: const InputDecoration(
+                                hintText: 'Search Martian nomenclature (Olympus, Jezero)...',
+                                hintStyle: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white38,
+                                  fontWeight: FontWeight.normal,
+                                ),
+                                border: InputBorder.none,
+                                isDense: true,
+                              ),
+                              onChanged: _onSearchChanged,
+                            ),
+                          ),
+                          if (_searchController.text.isNotEmpty)
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded, color: Colors.white60, size: 18),
+                              onPressed: _clearSearch,
+                              splashRadius: 18,
+                              tooltip: 'Clear search',
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    // Autocomplete Suggestions Dropdown
+                    if (_showSuggestions && _searchResults.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        constraints: const BoxConstraints(maxHeight: 280),
+                        decoration: BoxDecoration(
+                          color: const Color(0xF8121722),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.12),
+                            width: 1.0,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.65),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: BackdropFilter(
+                            filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                            child: ListView.separated(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              shrinkWrap: true,
+                              itemCount: _searchResults.length.clamp(0, 6),
+                              separatorBuilder: (context, index) => Divider(
+                                height: 1,
+                                thickness: 0.8,
+                                color: Colors.white.withOpacity(0.06),
+                              ),
+                              itemBuilder: (context, index) {
+                                final feature = _searchResults[index];
+                                return InkWell(
+                                  onTap: () => _selectFeature(feature),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    child: Row(
+                                      children: [
+                                        // Icon by Feature Category
+                                        Container(
+                                          width: 34,
+                                          height: 34,
+                                          decoration: BoxDecoration(
+                                            color: _getFeatureTypeColor(feature.type).withOpacity(0.16),
+                                            borderRadius: BorderRadius.circular(10),
+                                            border: Border.all(
+                                              color: _getFeatureTypeColor(feature.type).withOpacity(0.5),
+                                              width: 1.0,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            _getFeatureTypeIcon(feature.type),
+                                            size: 18,
+                                            color: _getFeatureTypeColor(feature.type),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+
+                                        // Feature Info
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                feature.name,
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    feature.type,
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: _getFeatureTypeColor(feature.type),
+                                                    ),
+                                                  ),
+                                                  if (feature.diameterKm > 0) ...[
+                                                    Text(
+                                                      ' • ${feature.diameterKm.toStringAsFixed(0)} km',
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        color: Colors.white.withOpacity(0.5),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+
+                                        // Coordinate readout
+                                        Text(
+                                          '${feature.location.latitude.toStringAsFixed(1)}°, ${feature.location.longitude.toStringAsFixed(1)}°',
+                                          style: TextStyle(
+                                            fontSize: 9.5,
+                                            color: Colors.white.withOpacity(0.4),
+                                            fontFamily: 'monospace',
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  IconData _getFeatureTypeIcon(String type) {
+    final lower = type.toLowerCase();
+    if (lower.contains('volcano') || lower.contains('mons') || lower.contains('tholus')) {
+      return Icons.volcano_rounded;
+    }
+    if (lower.contains('crater')) {
+      return Icons.trip_origin_rounded;
+    }
+    if (lower.contains('landing') || lower.contains('rover') || lower.contains('station')) {
+      return Icons.flag_rounded;
+    }
+    if (lower.contains('vallis') || lower.contains('chasma') || lower.contains('channel')) {
+      return Icons.water_rounded;
+    }
+    return Icons.public_rounded;
+  }
+
+  Color _getFeatureTypeColor(String type) {
+    final lower = type.toLowerCase();
+    if (lower.contains('volcano') || lower.contains('mons')) {
+      return const Color(0xFFFF9100);
+    }
+    if (lower.contains('crater')) {
+      return const Color(0xFF00E5FF);
+    }
+    if (lower.contains('landing') || lower.contains('rover')) {
+      return const Color(0xFF00E676);
+    }
+    if (lower.contains('vallis') || lower.contains('chasma')) {
+      return const Color(0xFF29B6F6);
+    }
+    return const Color(0xFFAB47BC);
   }
 
   Widget _buildFloatingControlButton({
@@ -406,127 +891,184 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with SingleTickerPr
 }
 
 // ============================================================================
-// TOP FLOATING HEADER BAR (MATCHING REFERENCE SCREENSHOT)
+// 4. ANIMATED BOUNCING LOCATION PIN (GOOGLE MAPS REALISTIC DROP PHYSICS)
 // ============================================================================
 
-class TopMissionHeaderBar extends StatelessWidget {
-  final String distanceFormatted;
-  final bool isSatelliteView;
-  final LatLng originLocation;
-  final LatLng destinationLocation;
-  final bool isSosActive;
+class BouncingPinMarker extends StatefulWidget {
+  final MarsFeature feature;
+  final VoidCallback? onTap;
 
-  const TopMissionHeaderBar({
+  const BouncingPinMarker({
     super.key,
-    required this.distanceFormatted,
-    required this.isSatelliteView,
-    required this.originLocation,
-    required this.destinationLocation,
-    required this.isSosActive,
+    required this.feature,
+    this.onTap,
   });
 
   @override
+  State<BouncingPinMarker> createState() => _BouncingPinMarkerState();
+}
+
+class _BouncingPinMarkerState extends State<BouncingPinMarker> with SingleTickerProviderStateMixin {
+  late final AnimationController _animController;
+  late final Animation<Offset> _dropAnimation;
+  late final Animation<double> _shadowScale;
+  late final Animation<double> _radarRing;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1050),
+    );
+
+    // Drop from 2.5x height above target with realistic Curves.bounceOut
+    _dropAnimation = Tween<Offset>(
+      begin: const Offset(0, -2.4),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animController,
+      curve: Curves.bounceOut,
+    ));
+
+    // Ground shadow scales up as the pin strikes the ground
+    _shadowScale = Tween<double>(
+      begin: 0.15,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOutQuad,
+    ));
+
+    // Radar ring expands on final impact
+    _radarRing = CurvedAnimation(
+      parent: _animController,
+      curve: const Interval(0.65, 1.0, curve: Curves.easeOut),
+    );
+
+    _animController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xF212171E),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isSosActive ? const Color(0xFFFF3344) : Colors.white12,
-            width: 1.2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.5),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Row 1: Green Status Dot + Sector Name + View Mode Pill
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color(0xFF00E676),
-                        boxShadow: [
-                          BoxShadow(color: Color(0xFF00E676), blurRadius: 6),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'ARES NAV // CHRYSE PLANITIA SECTOR',
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.6,
-                        color: Color(0xFF00E5FF),
-                      ),
-                    ),
-                  ],
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        clipBehavior: Clip.none,
+        children: [
+          // 1. Radar wave expanding at the surface contact point
+          AnimatedBuilder(
+            animation: _radarRing,
+            builder: (context, _) {
+              final val = _radarRing.value;
+              return Container(
+                width: 16 + (val * 28),
+                height: 8 + (val * 14),
+                margin: const EdgeInsets.only(bottom: 2),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(100),
+                  border: Border.all(
+                    color: const Color(0xFFFF2A3C).withOpacity((1.0 - val).clamp(0.0, 0.85)),
+                    width: 1.5,
+                  ),
                 ),
+              );
+            },
+          ),
+
+          // 2. Realistic ground shadow directly underneath the tip
+          AnimatedBuilder(
+            animation: _shadowScale,
+            builder: (context, _) {
+              return Transform.scale(
+                scale: _shadowScale.value,
+                child: Container(
+                  width: 16,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 1),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.7),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+
+          // 3. Falling & Bouncing Google Maps Classic Red Location Pin
+          SlideTransition(
+            position: _dropAnimation,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Feature Name Tag Pill
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E2530),
+                    color: const Color(0xEE10141D),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.white12),
+                    border: Border.all(color: const Color(0xFFFF3344), width: 1.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.7),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Text(
-                    isSatelliteView ? 'SATELLITE VIEW' : 'NORMAL TERRAIN',
-                    style: TextStyle(
-                      fontSize: 8.5,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.6,
-                      color: isSatelliteView ? const Color(0xFF00E5FF) : Colors.white70,
+                    widget.feature.name,
+                    style: const TextStyle(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: 0.3,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 10),
+                const SizedBox(height: 3),
 
-            // Row 2: Navigation Icon + Target Distance Readout
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.navigation,
-                  color: Color(0xFF00E676),
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                RichText(
-                  text: TextSpan(
+                // Classic Teardrop Pin Shape
+                SizedBox(
+                  width: 36,
+                  height: 46,
+                  child: Stack(
+                    alignment: Alignment.topCenter,
                     children: [
-                      const TextSpan(
-                        text: 'Target Distance: ',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                      CustomPaint(
+                        size: const Size(36, 46),
+                        painter: const ClassicGooglePinPainter(
+                          pinColor: Color(0xFFEA4335), // Google Maps Classic Red
                         ),
                       ),
-                      TextSpan(
-                        text: distanceFormatted,
-                        style: const TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF00E676),
+                      // Inner white circular aperture
+                      Positioned(
+                        top: 8,
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(color: Colors.black26, blurRadius: 2),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -534,16 +1076,260 @@ class TopMissionHeaderBar extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-            // Row 3: Origin -> Destination Coordinate Path
-            Text(
-              'EVA-1: ${originLocation.latitude.toStringAsFixed(4)}° N, ${originLocation.longitude.toStringAsFixed(4)}° W   →   DEST: ${destinationLocation.latitude.toStringAsFixed(4)}° N, ${destinationLocation.longitude.toStringAsFixed(4)}° W',
-              style: TextStyle(
-                fontSize: 8.5,
-                fontWeight: FontWeight.w600,
-                color: Colors.white.withOpacity(0.65),
+// ============================================================================
+// 5. CLASSIC GOOGLE MAPS TEARDROP PIN PAINTER
+// ============================================================================
+
+class ClassicGooglePinPainter extends CustomPainter {
+  final Color pinColor;
+
+  const ClassicGooglePinPainter({
+    required this.pinColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = pinColor
+      ..style = PaintingStyle.fill;
+
+    final shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.35)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5);
+
+    final path = Path();
+    final w = size.width;
+    final h = size.height;
+    final radius = w / 2;
+
+    // Start at bottom sharp tip
+    path.moveTo(w / 2, h);
+    // Left curve up to circular head
+    path.cubicTo(w * 0.08, h * 0.65, 0, h * 0.45, 0, radius);
+    // Smooth arc over top
+    path.arcToPoint(
+      Offset(w, radius),
+      radius: Radius.circular(radius),
+      clockwise: true,
+    );
+    // Right curve down to tip
+    path.cubicTo(w, h * 0.45, w * 0.92, h * 0.65, w / 2, h);
+    path.close();
+
+    // Drop shadow
+    canvas.drawPath(path.shift(const Offset(0, 2)), shadowPaint);
+    // Pin body
+    canvas.drawPath(path, paint);
+
+    // Top-left radial highlight reflection
+    final highlightPaint = Paint()
+      ..shader = ui.Gradient.radial(
+        Offset(w * 0.35, radius * 0.65),
+        radius * 0.85,
+        [
+          Colors.white.withOpacity(0.38),
+          Colors.transparent,
+        ],
+      );
+    canvas.drawCircle(Offset(w * 0.35, radius * 0.65), radius * 0.65, highlightPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ============================================================================
+// 6. SELECTED FEATURE DETAIL CARD (BOTTOM BANNER)
+// ============================================================================
+
+class FeatureDetailCard extends StatelessWidget {
+  final MarsFeature feature;
+  final bool isCurrentTarget;
+  final VoidCallback onSetAsTarget;
+  final VoidCallback onClose;
+
+  const FeatureDetailCard({
+    super.key,
+    required this.feature,
+    required this.isCurrentTarget,
+    required this.onSetAsTarget,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xF2121722),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF00E5FF).withOpacity(0.4),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.65),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row with Title and Close button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      feature.type.toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.8,
+                        color: Color(0xFF00E5FF),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      feature.name,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
+              IconButton(
+                icon: const Icon(Icons.close_rounded, color: Colors.white60, size: 20),
+                onPressed: onClose,
+                splashRadius: 20,
+                tooltip: 'Dismiss feature preview',
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Telemetry Row
+          Row(
+            children: [
+              _buildMetricChip(
+                label: 'LATITUDE',
+                value: '${feature.location.latitude.toStringAsFixed(2)}° N',
+              ),
+              const SizedBox(width: 8),
+              _buildMetricChip(
+                label: 'LONGITUDE',
+                value: '${feature.location.longitude.toStringAsFixed(2)}° W',
+              ),
+              if (feature.diameterKm > 0) ...[
+                const SizedBox(width: 8),
+                _buildMetricChip(
+                  label: 'DIAMETER',
+                  value: '${feature.diameterKm.toStringAsFixed(0)} km',
+                ),
+              ],
+              const SizedBox(width: 8),
+              _buildMetricChip(
+                label: 'ELEVATION',
+                value: '${feature.elevationM >= 0 ? "+" : ""}${feature.elevationM} m',
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Geological Description
+          Text(
+            feature.description,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.white.withOpacity(0.85),
+              height: 1.35,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 12),
+
+          // Route to Feature Action Button
+          InkWell(
+            onTap: onSetAsTarget,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: isCurrentTarget
+                    ? const Color(0xFFFF3344).withOpacity(0.2)
+                    : const Color(0xFF00E676).withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isCurrentTarget ? const Color(0xFFFF3344) : const Color(0xFF00E676),
+                  width: 1.2,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isCurrentTarget ? Icons.check_circle_rounded : Icons.navigation_rounded,
+                    color: isCurrentTarget ? const Color(0xFFFF3344) : const Color(0xFF00E676),
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    isCurrentTarget ? 'CURRENT ACTIVE DESTINATION' : 'SET AS NAVIGATION DESTINATION',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.6,
+                      color: isCurrentTarget ? const Color(0xFFFF3344) : const Color(0xFF00E676),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricChip({required String label, required String value}) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1B212D),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(fontSize: 7, color: Colors.white.withOpacity(0.45)),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Colors.white),
               overflow: TextOverflow.ellipsis,
             ),
           ],
@@ -554,112 +1340,7 @@ class TopMissionHeaderBar extends StatelessWidget {
 }
 
 // ============================================================================
-// BOTTOM TACTICAL GUIDANCE CARD (MATCHING REFERENCE SCREENSHOT)
-// ============================================================================
-
-class BottomTacticalGuidanceCard extends StatelessWidget {
-  final bool isSosActive;
-  final VoidCallback onToggleSos;
-
-  const BottomTacticalGuidanceCard({
-    super.key,
-    required this.isSosActive,
-    required this.onToggleSos,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xF212171E),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isSosActive ? const Color(0xFFFF3344) : Colors.white12,
-            width: 1.2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.55),
-              blurRadius: 18,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Drag Handle Pill
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Guidance Row
-            Row(
-              children: [
-                // Direction icon in rounded square
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: const Color(0x1A00E676),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF00E676), width: 1.2),
-                  ),
-                  child: const Icon(
-                    Icons.turn_sharp_right_rounded,
-                    color: Color(0xFF00E676),
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-
-                // Tactical instruction
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'TACTICAL GUIDANCE',
-                        style: TextStyle(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.8,
-                          color: Color(0xFF00E676),
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'Traverse 048° NE along Ares Vallis paleochannel towards Outcrop Delta.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white.withOpacity(0.95),
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ============================================================================
-// ASTRONAUT GLOWING CYAN BEACON MARKER
+// 7. ASTRONAUT GLOWING CYAN BEACON MARKER (EVA-1)
 // ============================================================================
 
 class AstronautCyanBeaconMarker extends StatelessWidget {
@@ -681,7 +1362,7 @@ class AstronautCyanBeaconMarker extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Outer Glowing Cyan Radar Expansion Ring
+              // Outer Expanding Cyan Radar Ring
               Container(
                 width: 14 + (pulseProgress * 28),
                 height: 14 + (pulseProgress * 28),
@@ -694,7 +1375,7 @@ class AstronautCyanBeaconMarker extends StatelessWidget {
                 ),
               ),
 
-              // Solid Center Cyan Core with Glow
+              // Solid Center Cyan Core
               Container(
                 width: 12,
                 height: 12,
@@ -720,7 +1401,7 @@ class AstronautCyanBeaconMarker extends StatelessWidget {
           ),
         ),
 
-        // Badge Tag
+        // Callsign Badge
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
@@ -744,7 +1425,7 @@ class AstronautCyanBeaconMarker extends StatelessWidget {
 }
 
 // ============================================================================
-// DESTINATION PULSING RED PIN MARKER
+// 8. DESTINATION PULSING RED PIN MARKER
 // ============================================================================
 
 class DestinationRedPinMarker extends StatelessWidget {

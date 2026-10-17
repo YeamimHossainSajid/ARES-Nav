@@ -1,0 +1,522 @@
+[
+  {
+    "id": "olympus_mons",
+    "name": "Olympus Mons",
+    "type": "Mons (Shield Volcano)",
+    "lat": 18.65,
+    "lon": -133.8,
+    "diameter_km": 624.0,
+    "elevation_m": 21287,
+    "description": "Largest volcano in the solar system, standing over 21 km high with a caldera 80 km across."
+  },
+  {
+    "id": "elysium_mons",
+    "name": "Elysium Mons",
+    "type": "Mons (Shield Volcano)",
+    "lat": 25.02,
+    "lon": 147.21,
+    "diameter_km": 432.0,
+    "elevation_m": 14127,
+    "description": "Isolated volcanic peak rising 14 km above the lava plains of Elysium Planitia."
+  },
+  {
+    "id": "ascraeus_mons",
+    "name": "Ascraeus Mons",
+    "type": "Mons (Shield Volcano)",
+    "lat": 11.92,
+    "lon": -104.08,
+    "diameter_km": 462.0,
+    "elevation_m": 18225,
+    "description": "Northernmost of the three massive Tharsis Montes shield volcanoes, rising over 18 km."
+  },
+  {
+    "id": "pavonis_mons",
+    "name": "Pavonis Mons",
+    "type": "Mons (Shield Volcano)",
+    "lat": 0.79,
+    "lon": -112.96,
+    "diameter_km": 375.0,
+    "elevation_m": 14058,
+    "description": "Central Tharsis volcano situated directly on the Martian equator."
+  },
+  {
+    "id": "arsia_mons",
+    "name": "Arsia Mons",
+    "type": "Mons (Shield Volcano)",
+    "lat": -8.28,
+    "lon": -121.09,
+    "diameter_km": 435.0,
+    "elevation_m": 17761,
+    "description": "Southernmost Tharsis volcano featuring a colossal 110 km wide summit caldera."
+  },
+  {
+    "id": "alba_mons",
+    "name": "Alba Mons",
+    "type": "Mons (Low-Profile Volcano)",
+    "lat": 40.47,
+    "lon": -109.91,
+    "diameter_km": 1600.0,
+    "elevation_m": 6815,
+    "description": "Enormous low-relief volcanic construct covering an area roughly the size of the United States."
+  },
+  {
+    "id": "hecates_tholus",
+    "name": "Hecates Tholus",
+    "type": "Tholus (Volcano Dome)",
+    "lat": 32.12,
+    "lon": 150.24,
+    "diameter_km": 182.0,
+    "elevation_m": 5300,
+    "description": "Elysium volcanic dome showing evidence of explosive eruptions and glacial mantle deposits."
+  },
+  {
+    "id": "jezero_crater",
+    "name": "Jezero Crater",
+    "type": "Impact Crater (Paleolake Delta)",
+    "lat": 18.38,
+    "lon": 77.58,
+    "diameter_km": 49.0,
+    "elevation_m": -2500,
+    "description": "Ancient open-basin lake fed by Neretva Vallis; current exploration ground of NASA Perseverance rover."
+  },
+  {
+    "id": "gale_crater",
+    "name": "Gale Crater",
+    "type": "Impact Crater (Aeolis Mons)",
+    "lat": -5.37,
+    "lon": 137.86,
+    "diameter_km": 154.0,
+    "elevation_m": -4500,
+    "description": "Features Mount Sharp (Aeolis Mons) rising 5 km from crater floor; NASA Curiosity rover site."
+  },
+  {
+    "id": "gusev_crater",
+    "name": "Gusev Crater",
+    "type": "Impact Crater (Columbia Hills)",
+    "lat": -14.57,
+    "lon": 175.47,
+    "diameter_km": 166.0,
+    "elevation_m": -1900,
+    "description": "Ancient crater lake breached by Maadim Vallis; landing location of NASA Spirit rover."
+  },
+  {
+    "id": "endeavour_crater",
+    "name": "Endeavour Crater",
+    "type": "Impact Crater",
+    "lat": -2.28,
+    "lon": -5.23,
+    "diameter_km": 22.0,
+    "elevation_m": -1400,
+    "description": "Meridiani Planum crater explored by the Opportunity rover for clay and sulfate minerals."
+  },
+  {
+    "id": "korolev_crater",
+    "name": "Korolev Crater",
+    "type": "Impact Crater (Ice Reservoir)",
+    "lat": 72.77,
+    "lon": 164.58,
+    "diameter_km": 81.4,
+    "elevation_m": -3900,
+    "description": "Northern polar crater permanently filled with a 1.8 km thick dome of pure water ice year-round."
+  },
+  {
+    "id": "schiaparelli_crater",
+    "name": "Schiaparelli Crater",
+    "type": "Impact Crater Basin",
+    "lat": -2.71,
+    "lon": 16.77,
+    "diameter_km": 461.0,
+    "elevation_m": -1000,
+    "description": "Prominent equatorial impact basin showing sedimentary layering and wind-eroded dunes."
+  },
+  {
+    "id": "arandas_crater",
+    "name": "Arandas Crater",
+    "type": "Impact Crater",
+    "lat": 42.77,
+    "lon": -15.17,
+    "diameter_km": 24.8,
+    "elevation_m": -2850,
+    "description": "Classic fluidized lobate ejecta blanket indicating impact into permafrost-rich substrate."
+  },
+  {
+    "id": "bam_crater",
+    "name": "Bam Crater",
+    "type": "Impact Crater",
+    "lat": 41.9,
+    "lon": -16.45,
+    "diameter_km": 7.0,
+    "elevation_m": -2200,
+    "description": "Sharp-rimmed impact structure located near the Cydonia northern lowland dichotomy."
+  },
+  {
+    "id": "calahorra_crater",
+    "name": "Calahorra",
+    "type": "Impact Crater",
+    "lat": 21.8,
+    "lon": -22.9,
+    "diameter_km": 35.2,
+    "elevation_m": -3100,
+    "description": "Prominent impact crater in western Chryse Planitia near the mouth of Simud Valles."
+  },
+  {
+    "id": "grindavik_crater",
+    "name": "Grindavik",
+    "type": "Impact Crater",
+    "lat": 21.0,
+    "lon": -22.9,
+    "diameter_km": 12.0,
+    "elevation_m": -3250,
+    "description": "Crater in southern Chryse Planitia named after the Icelandic fishing town."
+  },
+  {
+    "id": "alamos_crater",
+    "name": "Alamos",
+    "type": "Impact Crater",
+    "lat": 20.0,
+    "lon": -22.4,
+    "diameter_km": 18.0,
+    "elevation_m": -3300,
+    "description": "Impact feature near the junction of Chryse outflow channels."
+  },
+  {
+    "id": "cefal\u00f9_crater",
+    "name": "Cefal\u00f9",
+    "type": "Impact Crater",
+    "lat": 20.2,
+    "lon": -23.6,
+    "diameter_km": 16.5,
+    "elevation_m": -3400,
+    "description": "Well-defined crater rim in the Chryse Planitia alluvial delta zone."
+  },
+  {
+    "id": "sefadu_crater",
+    "name": "Sefadu",
+    "type": "Impact Crater",
+    "lat": 23.4,
+    "lon": -20.9,
+    "diameter_km": 10.8,
+    "elevation_m": -3450,
+    "description": "Northern Chryse crater situated north of the Viking 1 landing zone."
+  },
+  {
+    "id": "swanage_crater",
+    "name": "Swanage",
+    "type": "Impact Crater",
+    "lat": 21.7,
+    "lon": -19.6,
+    "diameter_km": 18.7,
+    "elevation_m": -3500,
+    "description": "Crater situated along the Ares Vallis outflow path into Chryse basin."
+  },
+  {
+    "id": "nakusp_crater",
+    "name": "Nakusp",
+    "type": "Impact Crater",
+    "lat": 20.7,
+    "lon": -20.3,
+    "diameter_km": 7.5,
+    "elevation_m": -3550,
+    "description": "Small crater in the primary traversal sector of ARES Nav EVA-1."
+  },
+  {
+    "id": "belva_crater",
+    "name": "Belva Crater",
+    "type": "Impact Crater",
+    "lat": 18.49,
+    "lon": 77.36,
+    "diameter_km": 0.9,
+    "elevation_m": -2580,
+    "description": "Nested impact crater inside Jezero exposing cross-bedded river delta top deposits."
+  },
+  {
+    "id": "chryse_planitia",
+    "name": "Chryse Planitia",
+    "type": "Planitia (Lowland Basin)",
+    "lat": 22.8,
+    "lon": -23.8,
+    "diameter_km": 1600.0,
+    "elevation_m": -3600,
+    "description": "Vast circular lowland plain where multiple giant flood channels emptied into an ancient sea."
+  },
+  {
+    "id": "isidis_planitia",
+    "name": "Isidis Planitia",
+    "type": "Planitia (Impact Basin)",
+    "lat": 12.9,
+    "lon": 87.0,
+    "diameter_km": 1500.0,
+    "elevation_m": -3700,
+    "description": "Major impact basin bordering Syrtis Major; host basin to Jezero Crater and Beagle 2."
+  },
+  {
+    "id": "utopia_planitia",
+    "name": "Utopia Planitia",
+    "type": "Planitia (Giant Basin)",
+    "lat": 46.7,
+    "lon": 117.5,
+    "diameter_km": 3300.0,
+    "elevation_m": -5000,
+    "description": "Largest recognized impact basin in the solar system; landing site of Viking 2 and Zhurong rover."
+  },
+  {
+    "id": "hellas_planitia",
+    "name": "Hellas Planitia",
+    "type": "Planitia (Deepest Basin)",
+    "lat": -42.7,
+    "lon": 70.0,
+    "diameter_km": 2300.0,
+    "elevation_m": -7152,
+    "description": "Deepest impact basin on Mars, plunging over 7 km below datum with high atmospheric pressure."
+  },
+  {
+    "id": "argyre_planitia",
+    "name": "Argyre Planitia",
+    "type": "Planitia (Southern Basin)",
+    "lat": -49.7,
+    "lon": -44.0,
+    "diameter_km": 800.0,
+    "elevation_m": -5200,
+    "description": "Second-largest impact basin in the southern highlands, surrounded by rugged mountain rings."
+  },
+  {
+    "id": "acidalia_planitia",
+    "name": "Acidalia Planitia",
+    "type": "Planitia (Dark Lowlands)",
+    "lat": 49.8,
+    "lon": -20.7,
+    "diameter_km": 3000.0,
+    "elevation_m": -4500,
+    "description": "Expansive northern plains covered in dark basaltic sand dunes and putative submarine mud deposits."
+  },
+  {
+    "id": "elysium_planitia",
+    "name": "Elysium Planitia",
+    "type": "Planitia (Volcanic Plain)",
+    "lat": 3.0,
+    "lon": 154.7,
+    "diameter_km": 2000.0,
+    "elevation_m": -2600,
+    "description": "Smooth volcanic plain featuring young flood lavas; landing region of NASA InSight mission."
+  },
+  {
+    "id": "valles_marineris",
+    "name": "Valles Marineris",
+    "type": "Chasma System (Grand Canyon)",
+    "lat": -13.9,
+    "lon": -59.2,
+    "diameter_km": 4000.0,
+    "elevation_m": -8000,
+    "description": "Massive canyon system stretching over 4,000 km, up to 200 km wide and 7 km deep."
+  },
+  {
+    "id": "ares_vallis",
+    "name": "Ares Vallis",
+    "type": "Vallis (Outflow Channel)",
+    "lat": 18.2,
+    "lon": -15.5,
+    "diameter_km": 1700.0,
+    "elevation_m": -3400,
+    "description": "Colossal catastrophic flood channel that carved teardrop islands into the Chryse plains."
+  },
+  {
+    "id": "simud_valles",
+    "name": "Simud Valles",
+    "type": "Vallis (Outflow Channel)",
+    "lat": 19.8,
+    "lon": -22.8,
+    "diameter_km": 945.0,
+    "elevation_m": -3200,
+    "description": "Braided mega-flood channel network named after the Sumerian word for Mars."
+  },
+  {
+    "id": "tiu_valles",
+    "name": "Tiu Valles",
+    "type": "Vallis (Outflow Channel)",
+    "lat": 19.2,
+    "lon": -20.2,
+    "diameter_km": 1720.0,
+    "elevation_m": -3300,
+    "description": "Major outflow valley converging into Chryse Planitia from the eastern Hydraotes chaos terrain."
+  },
+  {
+    "id": "mawrth_vallis",
+    "name": "Mawrth Vallis",
+    "type": "Vallis (Clay-Rich Valley)",
+    "lat": 23.99,
+    "lon": -18.96,
+    "diameter_km": 636.0,
+    "elevation_m": -2000,
+    "description": "Ancient valley system exposing thick strata of iron- and aluminum-rich smectite clays."
+  },
+  {
+    "id": "kasei_valles",
+    "name": "Kasei Valles",
+    "type": "Vallis (Outflow System)",
+    "lat": 24.6,
+    "lon": -65.0,
+    "diameter_km": 1780.0,
+    "elevation_m": -2500,
+    "description": "One of the largest outflow channel systems on Mars, cutting through Lunae Planum."
+  },
+  {
+    "id": "melas_chasma",
+    "name": "Melas Chasma",
+    "type": "Chasma (Deepest Canyon)",
+    "lat": -9.8,
+    "lon": -76.4,
+    "diameter_km": 563.0,
+    "elevation_m": -9000,
+    "description": "Deepest segment of Valles Marineris canyon, dropping 9 km below surrounding plateau."
+  },
+  {
+    "id": "perseverance_landing",
+    "name": "Perseverance Landing Site (Octavia E. Butler)",
+    "type": "Historical Landing Site (NASA 2021)",
+    "lat": 18.4447,
+    "lon": 77.4508,
+    "diameter_km": 7.7,
+    "elevation_m": -2570,
+    "description": "Touchdown location of the Mars 2020 Perseverance rover and Ingenuity helicopter."
+  },
+  {
+    "id": "curiosity_landing",
+    "name": "Curiosity Landing Site (Bradbury Landing)",
+    "type": "Historical Landing Site (NASA 2012)",
+    "lat": -4.5895,
+    "lon": 137.4417,
+    "diameter_km": 7.0,
+    "elevation_m": -4450,
+    "description": "Touchdown point of the Mars Science Laboratory (Curiosity rover) in Gale Crater."
+  },
+  {
+    "id": "viking_1_landing",
+    "name": "Viking 1 Lander (Thomas Mutch Station)",
+    "type": "Historical Landing Site (NASA 1976)",
+    "lat": 22.2693,
+    "lon": -47.9497,
+    "diameter_km": 3.0,
+    "elevation_m": -2690,
+    "description": "First successful operational spacecraft to land on Mars; operated for over 6 years."
+  },
+  {
+    "id": "viking_2_landing",
+    "name": "Viking 2 Lander (Gerald Soffen Station)",
+    "type": "Historical Landing Site (NASA 1976)",
+    "lat": 47.967,
+    "lon": 134.281,
+    "diameter_km": 3.0,
+    "elevation_m": -4100,
+    "description": "NASA lander in Utopia Planitia that performed primary biological soil analysis."
+  },
+  {
+    "id": "pathfinder_landing",
+    "name": "Mars Pathfinder (Carl Sagan Memorial Station)",
+    "type": "Historical Landing Site (NASA 1997)",
+    "lat": 19.33,
+    "lon": -33.55,
+    "diameter_km": 2.5,
+    "elevation_m": -3650,
+    "description": "First rover mission to Mars carrying the Sojourner microrover in Ares Vallis."
+  },
+  {
+    "id": "opportunity_landing",
+    "name": "Opportunity Lander (Challenger Station)",
+    "type": "Historical Landing Site (NASA 2004)",
+    "lat": -1.9462,
+    "lon": -5.5266,
+    "diameter_km": 2.0,
+    "elevation_m": -1440,
+    "description": "Eagle Crater touchdown of Opportunity rover; verified past presence of liquid water."
+  },
+  {
+    "id": "spirit_landing",
+    "name": "Spirit Lander (Columbia Memorial Station)",
+    "type": "Historical Landing Site (NASA 2004)",
+    "lat": -14.5684,
+    "lon": 175.4729,
+    "diameter_km": 2.0,
+    "elevation_m": -1940,
+    "description": "Gusev Crater landing site of the Spirit Mars Exploration Rover."
+  },
+  {
+    "id": "insight_landing",
+    "name": "InSight Lander Site",
+    "type": "Historical Landing Site (NASA 2018)",
+    "lat": 4.5024,
+    "lon": 135.6234,
+    "diameter_km": 2.0,
+    "elevation_m": -2613,
+    "description": "Elysium Planitia landing site of the geophysics lander that mapped Mars core and quakes."
+  },
+  {
+    "id": "zhurong_landing",
+    "name": "Zhurong Rover Landing Site (Tianwen-1)",
+    "type": "Historical Landing Site (CNSA 2021)",
+    "lat": 25.066,
+    "lon": 109.925,
+    "diameter_km": 3.0,
+    "elevation_m": -3960,
+    "description": "Southern Utopia Planitia landing site of China first operational Mars rover."
+  },
+  {
+    "id": "cydonia_mensae",
+    "name": "Cydonia Mensae",
+    "type": "Mensae (Tablelands)",
+    "lat": 42.0833,
+    "lon": 38.446,
+    "diameter_km": 185.0,
+    "elevation_m": -1240,
+    "description": "Dichotomy transition plateau featuring flat-topped mesas and famous orbital landmarks."
+  },
+  {
+    "id": "face_on_mars",
+    "name": "Face on Mars (Cydonia Butte B-1)",
+    "type": "Erosional Butte",
+    "lat": 40.75,
+    "lon": 38.54,
+    "diameter_km": 2.5,
+    "elevation_m": -1180,
+    "description": "Eroded 2.5 km butte photographed by Viking 1; confirmed as natural feature by MGS."
+  },
+  {
+    "id": "dm_pyramid",
+    "name": "D&M Pyramid",
+    "type": "Pyramidal Massif",
+    "lat": 40.87,
+    "lon": 38.72,
+    "diameter_km": 3.8,
+    "elevation_m": -950,
+    "description": "Geometrical pentagonal massif shaped by prolonged aeolian wind erosion in Cydonia."
+  },
+  {
+    "id": "oxia_colles",
+    "name": "Oxia Colles",
+    "type": "Colles (Knobby Hills)",
+    "lat": 18.9,
+    "lon": -15.8,
+    "diameter_km": 120.0,
+    "elevation_m": -3100,
+    "description": "Complex cluster of isolated low hills and mesas bordering Chryse Planitia and Ares Vallis."
+  },
+  {
+    "id": "nili_fossae",
+    "name": "Nili Fossae",
+    "type": "Fossae (Fracture Troughs)",
+    "lat": 22.0,
+    "lon": 75.0,
+    "diameter_km": 667.0,
+    "elevation_m": -1200,
+    "description": "Curved grabens northwest of Isidis Basin rich in olivine, clays, and carbonate mineral beds."
+  },
+  {
+    "id": "arabia_terra",
+    "name": "Arabia Terra",
+    "type": "Terra (Ancient Highlands)",
+    "lat": 21.0,
+    "lon": 30.0,
+    "diameter_km": 4500.0,
+    "elevation_m": 500,
+    "description": "Heavily cratered Noachian crust; one of the oldest terrains preserved on Mars."
+  }
+]
