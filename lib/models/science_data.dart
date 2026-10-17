@@ -279,7 +279,7 @@ class MarsScienceRepository {
         LatLng(21.46, -20.75),
         LatLng(21.31, -20.78),
       ],
-      description: 'Exposed bedrock cliffs with $>30^\circ$ talus slopes.',
+      description: 'Exposed bedrock cliffs with > 30° talus slopes.',
       recommendation: 'NO-GO ZONE: Astronaut EVA tethering required if approach within 50m.',
     ),
   ];
@@ -359,7 +359,7 @@ class MarsScienceRepository {
       ],
       estimatedVolumeM3: 38500.0,
       extractionViability: 'OPTIMAL: Accessible via standard rotary sublimation drill (depth < 0.5m).',
-      scientificNotes: 'Porous regolith pore-ice matrix. Provides direct ISRU drinking water and propellant feedstock ($H_2 / O_2$).',
+      scientificNotes: 'Porous regolith pore-ice matrix. Provides direct ISRU drinking water and propellant feedstock (H2 / O2).',
     ),
 
     // 2. Deep Massive Ice Deposit
