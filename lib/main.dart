@@ -5,9 +5,12 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'models/science_data.dart';
+import 'models/navigation_route.dart';
 import 'widgets/weather_hud_pill.dart';
 import 'widgets/science_layer_control_sheet.dart';
 import 'widgets/science_detail_dialog.dart';
+import 'widgets/elevation_profile_drawer.dart';
+import 'widgets/plss_status_card.dart';
 
 /// ============================================================================
 /// ARES NAV (Martian Planetary Navigation & Nomenclature Search)
@@ -191,6 +194,14 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
   bool _showWeatherHud = true;
   final MarsWeatherTelemetry _weatherTelemetry = MarsWeatherTelemetry.currentChryseTelemetry();
 
+  // Phase 2: Hazard-Aware Marswalk Navigation & Safety States
+  bool _avoidHazards = true;
+  bool _showElevationProfile = true;
+  bool _showPnrCircles = true;
+  late MarswalkRoute _currentRoute;
+  final PlssConsumables _plssConsumables = PlssConsumables.nominalAstronaut();
+  ElevationSample? _activeScrubSample;
+
   @override
   void initState() {
     super.initState();
@@ -208,7 +219,7 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
       duration: const Duration(milliseconds: 1400),
     );
 
-    _recomputeDistance();
+    _recomputeRoute();
 
     // Load offline USGS Martian nomenclature dataset
     _searchService.loadFeatures().then((_) {
@@ -222,14 +233,17 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
     });
   }
 
-  void _recomputeDistance() {
-    final double distanceMeters = const Distance().distance(
-      _originLocation,
-      _destinationLocation,
+  void _recomputeRoute() {
+    _currentRoute = MarsRoutePlanningService.calculateRoute(
+      origin: _originLocation,
+      destination: _destinationLocation,
+      avoidHazards: _avoidHazards,
     );
-    _distanceKm = distanceMeters / 1000.0;
+    _distanceKm = _currentRoute.totalDistanceKm;
     _formattedDistance = '${_distanceKm.toStringAsFixed(1)} km';
   }
+
+  void _recomputeDistance() => _recomputeRoute();
 
   @override
   void dispose() {
@@ -304,7 +318,8 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
   void _setAsNavigationDestination(MarsFeature feature) {
     setState(() {
       _destinationLocation = feature.location;
-      _recomputeDistance();
+      _recomputeRoute();
+      _showElevationProfile = true;
     });
 
     ScaffoldMessenger.of(context).clearSnackBars();
@@ -457,7 +472,8 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
 
           setState(() {
             _destinationLocation = targetPoint;
-            _recomputeDistance();
+            _recomputeRoute();
+            _showElevationProfile = true;
           });
 
           _flyTo(targetPoint, 7.8);
@@ -491,6 +507,61 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
             ),
           );
         },
+      ),
+    );
+  }
+
+  void _openPlssConsole() {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.65),
+      builder: (context) => PlssTelemetryModal(
+        plss: _plssConsumables,
+        currentDistanceKm: _distanceKm,
+      ),
+    );
+  }
+
+  void _toggleElevationProfile() {
+    setState(() {
+      _showElevationProfile = !_showElevationProfile;
+    });
+  }
+
+  void _togglePnrCircles() {
+    setState(() {
+      _showPnrCircles = !_showPnrCircles;
+    });
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF131822),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(
+            color: _showPnrCircles ? const Color(0xFF00E676) : Colors.white30,
+          ),
+        ),
+        content: Row(
+          children: [
+            Icon(
+              Icons.radar_rounded,
+              color: _showPnrCircles ? const Color(0xFF00E676) : Colors.white60,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              _showPnrCircles ? 'PNR SAFETY PERIMETER: VISIBLE' : 'PNR SAFETY PERIMETER: HIDDEN',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -614,19 +685,48 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
                   }).toList(),
                 ),
 
-              // Traversal Route: Dashed neon-green line connecting Origin to Target
+              // ==============================================================
+              // PLSS CONSUMABLES & POINT-OF-NO-RETURN HORIZONS (CIRCLE LAYER)
+              // ==============================================================
+              if (_showPnrCircles)
+                CircleLayer(
+                  circles: [
+                    // Safe Return Radius (Nominal green 25% margin perimeter)
+                    CircleMarker(
+                      point: _originLocation,
+                      radius: _plssConsumables.safeReturnRadiusKm * 1000.0,
+                      useRadiusInMeter: true,
+                      color: const Color(0xFF00E676).withOpacity(0.05),
+                      borderColor: const Color(0xFF00E676).withOpacity(0.4),
+                      borderStrokeWidth: 1.5,
+                    ),
+                    // Absolute Point-of-No-Return Radius (Red depletion perimeter)
+                    CircleMarker(
+                      point: _originLocation,
+                      radius: _plssConsumables.absolutePnrRadiusKm * 1000.0,
+                      useRadiusInMeter: true,
+                      color: const Color(0xFFFF3344).withOpacity(0.04),
+                      borderColor: const Color(0xFFFF3344).withOpacity(0.4),
+                      borderStrokeWidth: 1.5,
+                    ),
+                  ],
+                ),
+
+              // Traversal Route: Multi-waypoint path with hazard-awareness
               PolylineLayer(
                 polylines: [
                   // Soft outer glow corridor
                   Polyline(
-                    points: [_originLocation, _destinationLocation],
-                    color: const Color(0xFF00E676).withOpacity(0.35),
+                    points: _currentRoute.pathPoints,
+                    color: _avoidHazards
+                        ? const Color(0xFF00E676).withOpacity(0.35)
+                        : const Color(0xFFFF3344).withOpacity(0.35),
                     strokeWidth: 7.0,
                   ),
                   // Core dashed walking line
                   Polyline(
-                    points: [_originLocation, _destinationLocation],
-                    color: const Color(0xFF00E676),
+                    points: _currentRoute.pathPoints,
+                    color: _avoidHazards ? const Color(0xFF00E676) : const Color(0xFFFF5252),
                     strokeWidth: 3.5,
                     pattern: StrokePattern.dashed(segments: const [10, 6]),
                   ),
@@ -763,6 +863,84 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
                       ),
                     )),
 
+                  // ----------------------------------------------------------
+                  // INTERMEDIATE HAZARD-BYPASS WAYPOINTS (PHASE 2)
+                  // ----------------------------------------------------------
+                  if (_avoidHazards && _currentRoute.waypoints.length > 2)
+                    ..._currentRoute.waypoints.where((wp) => wp.isHazardBypass).map((wp) => Marker(
+                      point: wp.location,
+                      width: 90,
+                      height: 28,
+                      alignment: Alignment.center,
+                      child: GestureDetector(
+                        onTap: () => _flyTo(wp.location, 8.2),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xEE11151F),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFF00E676), width: 1.0),
+                            boxShadow: [
+                              BoxShadow(color: const Color(0xFF00E676).withOpacity(0.3), blurRadius: 4),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.turn_slight_right_rounded, size: 11, color: Color(0xFF00E676)),
+                              const SizedBox(width: 4),
+                              Text(
+                                wp.name.split(':').first,
+                                style: const TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF00E676),
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )),
+
+                  // ----------------------------------------------------------
+                  // ELEVATION PROFILE SCRUBBER PINPOINT (PHASE 2)
+                  // ----------------------------------------------------------
+                  if (_activeScrubSample != null)
+                    Marker(
+                      point: _activeScrubSample!.location,
+                      width: 110,
+                      height: 40,
+                      alignment: Alignment.bottomCenter,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xF210141F),
+                              borderRadius: BorderRadius.circular(5),
+                              border: Border.all(color: const Color(0xFF00E5FF), width: 1.2),
+                              boxShadow: [
+                                BoxShadow(color: const Color(0xFF00E5FF).withOpacity(0.5), blurRadius: 6),
+                              ],
+                            ),
+                            child: Text(
+                              '${_activeScrubSample!.elevationM}m • ${_activeScrubSample!.slopeDeg.toStringAsFixed(1)}°',
+                              style: const TextStyle(
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF00E5FF),
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ),
+                          const Icon(Icons.arrow_drop_down, color: Color(0xFF00E5FF), size: 16),
+                        ],
+                      ),
+                    ),
+
                   // Origin: Astronaut EVA-1 Location Beacon
                   Marker(
                     point: _originLocation,
@@ -853,7 +1031,27 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
                     accentColor: const Color(0xFF00E5FF),
                     onTap: _openScienceLayersSheet,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
+
+                  // MOLA 2D Elevation Profile Toggle Button (Phase 2)
+                  _buildFloatingControlButton(
+                    icon: Icons.show_chart_rounded,
+                    tooltip: 'MOLA Elevation Profile Chart',
+                    highlight: _showElevationProfile,
+                    accentColor: _showElevationProfile ? const Color(0xFF00E676) : Colors.white70,
+                    onTap: _toggleElevationProfile,
+                  ),
+                  const SizedBox(height: 10),
+
+                  // PLSS Point-of-No-Return Radar Perimeter Toggle (Phase 2)
+                  _buildFloatingControlButton(
+                    icon: Icons.radar_rounded,
+                    tooltip: 'PLSS Point-of-No-Return (PNR) Horizon',
+                    highlight: _showPnrCircles,
+                    accentColor: _showPnrCircles ? const Color(0xFF00E676) : Colors.white70,
+                    onTap: _togglePnrCircles,
+                  ),
+                  const SizedBox(height: 10),
 
                   // Layer View Toggle Button (Normal vs. Satellite)
                   _buildFloatingControlButton(
@@ -863,7 +1061,7 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
                     accentColor: _isSatelliteView ? const Color(0xFF00E5FF) : Colors.white70,
                     onTap: _toggleMapView,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
 
                   // Recenter Button (Jump to EVA-1)
                   _buildFloatingControlButton(
@@ -894,7 +1092,7 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
           ),
 
           // ==================================================================
-          // 4. SELECTED FEATURE DETAIL CARD (FLOATING BOTTOM BANNER)
+          // 4. SELECTED FEATURE DETAIL CARD OR MOLA ELEVATION PROFILE DRAWER
           // ==================================================================
           if (_selectedFeature != null)
             Align(
@@ -909,6 +1107,31 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
                     onSetAsTarget: () => _setAsNavigationDestination(_selectedFeature!),
                     onClose: () => setState(() => _selectedFeature = null),
                   ),
+                ),
+              ),
+            )
+          else if (_showElevationProfile)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: SafeArea(
+                child: ElevationProfileDrawer(
+                  route: _currentRoute,
+                  isAvoidHazardsActive: _avoidHazards,
+                  onToggleHazardAvoidance: (avoid) {
+                    setState(() {
+                      _avoidHazards = avoid;
+                      _recomputeRoute();
+                    });
+                  },
+                  onSampleScrubbed: (sample) {
+                    setState(() {
+                      _activeScrubSample = sample;
+                    });
+                  },
+                  onWaypointSelected: (wp) {
+                    _flyTo(wp.location, 8.2);
+                  },
+                  onClose: () => setState(() => _showElevationProfile = false),
                 ),
               ),
             ),
@@ -1106,16 +1329,26 @@ class _AresNavMapScreenState extends State<AresNavMapScreen> with TickerProvider
                         ),
                       ),
 
-                    // Perseverance MEDA Real-Time Weather HUD Pill (Displayed when suggestions are closed)
-                    if (!_showSuggestions && _showWeatherHud)
+                    // Real-Time Telemetry Row: Weather HUD Pill & PLSS Consumables Badge (Phase 2)
+                    if (!_showSuggestions)
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: WeatherHudPill(
-                            telemetry: _weatherTelemetry,
-                            onTap: _openWeatherTelemetryConsole,
-                          ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            if (_showWeatherHud)
+                              WeatherHudPill(
+                                telemetry: _weatherTelemetry,
+                                onTap: _openWeatherTelemetryConsole,
+                              )
+                            else
+                              const SizedBox.shrink(),
+                            PlssQuickStatusBadge(
+                              plss: _plssConsumables,
+                              currentDistanceKm: _distanceKm,
+                              onTap: _openPlssConsole,
+                            ),
+                          ],
                         ),
                       ),
                   ],
