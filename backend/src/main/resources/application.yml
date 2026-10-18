@@ -1,0 +1,52 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ares-mars-mission-backend
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/mars_mission_db
+    username: ares_admin
+    password: ares_mission_secret
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.spatial.dialect.postgis.PostgisDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          batch_size: 50
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: ares-mission-control-group
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "gov.nasa.ares.*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+# NASA & USGS Planetary Data System (PDS) Service Configuration
+nasa:
+  pds:
+    mars-trek:
+      wmts-mola-base-url: "https://trek.nasa.gov/tiles/Mars/EQ/Mars_MGS_MOLA_ClrShade_merge_global_463m/1.0.0//default/default028mm"
+      wmts-hirise-jezero-url: "https://trek.nasa.gov/tiles/Mars/EQ/Jezero_HiRISE_Mosaic/1.0.0//default/default028mm"
+    insight:
+      seis-catalog-url: "https://star-api.jpl.nasa.gov/seis/marsquakes"
+
+# Simulation Terrain Validation Constraints
+simulation:
+  terrain:
+    max-deployment-slope-degrees: 12.0
+    safe-eva-slope-degrees: 20.0
+    critical-slope-degrees: 25.0

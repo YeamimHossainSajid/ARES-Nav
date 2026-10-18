@@ -1,0 +1,38 @@
+name: ares_nav_frontend
+description: "ARES Nav - Dual-Lens Mars Tactical Observation & Simulation Interface"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+  flutter: ">=3.16.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Base Geodetic & Tile Map System (NASA WMTS)
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+
+  # Lens 2: Simulation Sandbox Game Engine
+  flame: ^1.18.0
+
+  # Real-Time WebSocket & REST Networking
+  web_socket_channel: ^2.4.5
+  http: ^1.2.2
+
+  # Icons & Glassmorphism UI
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/sprites/

@@ -46,3 +46,17 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Monorepo Gradle & Java
+.gradle/
+**/.gradle/
+**/build/
+*.jar
+*.war
+
+# Monorepo Flutter & Dart
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub/
+**/.pub-cache/

@@ -1,0 +1,58 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.4'
+    id 'io.spring.dependency-management' version '1.1.6'
+}
+
+group = 'gov.nasa.ares'
+version = '0.0.1-SNAPSHOT'
+description = 'ARES Nav - Dual-Lens Mars Mission Control Backend'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://repo.osgeo.org/repository/release/' } // For OSGeo / GeoTools / JTS dependencies
+}
+
+dependencies {
+    // Spring Boot Core Starters
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux' // For reactive WebClient (NASA PDS / WMTS proxy)
+
+    // Spatial & Database: PostgreSQL + PostGIS (Hibernate Spatial 6)
+    implementation 'org.postgresql:postgresql:42.7.4'
+    implementation 'org.hibernate.orm:hibernate-spatial:6.5.3.Final'
+    implementation 'org.locationtech.jts:jts-core:1.19.0'
+    implementation 'org.n52.jackson:jackson-datatype-jts:1.2.10'
+
+    // Real-Time Event Messaging: Apache Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+
+    // Utilities
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
