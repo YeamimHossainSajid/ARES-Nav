@@ -10,41 +10,79 @@
 [![PostGIS](https://img.shields.io/badge/PostGIS-16--3.4-336791.svg?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgis.net)
 [![Apache Kafka](https://img.shields.io/badge/Apache%20Kafka-3.7-231F20.svg?style=for-the-badge&logo=apachekafka&logoColor=white)](https://kafka.apache.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-00D8D6.svg?style=for-the-badge)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](CONTRIBUTING.md)
 
 <br/>
 
-**ARES Nav** is a mission-grade, open-source Martian Geographic Information System (GIS) and autonomous tactical navigation platform. Engineered specifically for crewed planetary surface excursions, autonomous rover fleets, and ground habitat operations, it bridges the gap between **scientific planetary telemetry (NASA PDS, USGS Astrogeology)** and **real-time interactive multi-agent simulation**.
+**ARES Nav** is an open-source, production-grade Martian Geographic Information System (GIS) and autonomous surface navigation platform designed to become **the most sophisticated, scientifically accurate, and high-performance map of Mars ever built**. 
 
-[Explore Live Map](#-interactive-interface-preview) • [Dual-Lens Architecture](#-the-dual-lens-architectural-paradigm) • [150 Engineering Issues](#-open-source-roadmap--150-advanced-issues) • [Quickstart](#-quickstart--local-deployment) • [Contributing](#-contributing)
+Built for crewed interplanetary surface expeditions, autonomous multi-rover fleets, and planetary surface science, ARES Nav combines **NASA Planetary Data System (PDS) orbital rasters**, **MOLA areoid elevation geodesy**, **Spring Boot microservices**, **PostGIS spatial geometry**, and an interactive **Flame 2D/2.5D simulation loop** seamlessly running over `flutter_map`.
+
+[Explore the Map](#-planetary-interface-showcase) • [Why Mars GIS is Different](#-the-geodetic-challenge-why-earth-gis-fails-on-mars) • [Dual-Lens Architecture](#-the-dual-lens-architectural-paradigm) • [150 Engineering Issues](#-open-source-roadmap--150-advanced-issues) • [Quickstart](#-quickstart--local-deployment) • [Contributing](#-why-contribute--how-to-join)
 
 </div>
 
 ---
 
-## 📸 Interactive Interface Preview
+## 📸 Planetary Interface Showcase
 
-ARES Nav renders multi-gigabyte Martian orbital rasters, MOLA topography, and real-time pathfinding vectors directly within a responsive Flutter HUD.
+ARES Nav renders multi-gigabyte Martian orbital mosaics, hypsometric elevation gradients, and real-time kinodynamic navigation paths at 60 FPS.
 
+### 1. Global Hypsometry & Topographic Elevation
+<div align="center">
+  <img src="docs/images/ares_mola_rainbow_topography.jpg" alt="MOLA Planetary Elevation Hypsometry" width="100%" />
+  <p align="center">
+    <b>Figure 1: Full-Spectrum MOLA Hypsometric Elevation Model</b><br/>
+    <i>Continuous topographic elevation scale spanning from the depths of Hellas Planitia (blue, -8,200m) through the datum plains of Chryse and Utopia (green/yellow, -2,000m to 0m) to the volcanic summits of Tharsis Montes and Olympus Mons (white, +21,287m).</i>
+  </p>
+</div>
+
+---
+
+### 2. Autonomous Tactical Surface Traversal & PNR Safety Tracking
+<div align="center">
+  <img src="docs/images/ares_tactical_waypoint_traverse.png" alt="Tactical Waypoint Navigation Traverse" width="100%" />
+  <p align="center">
+    <b>Figure 2: Tactical Waypoint Traversal & Real-Time Life Support Telemetry</b><br/>
+    <i>Kinodynamic route from EVA-1 through intermediate waypoints (WP-Alpha, WP-Bravo, WP-Charlie, WP-Delta) to Destination. Top HUD shows real-time Primary Life Support System (PLSS) telemetry: <b>O₂ Tank 78%</b>, <b>Suit Battery 83%</b>, and automated <b>Point of No Return (PNR) Safety Horizon Alert</b>.</i>
+  </p>
+</div>
+
+---
+
+### 3. Catastrophic Outflow Channels & Regional Micro-Relief
 <div align="center">
   <table>
     <tr>
       <td width="50%">
-        <img src="docs/images/ares_nav_mola_global.jpg" alt="MOLA Global Elevation Topography" width="100%" />
-        <p align="center"><b>Figure 1: Global MOLA Topographic Elevation (Noachis Terra to Hellas Basin)</b><br/><i>Continuous color-ramp elevation shaded relief relative to the Martian Areoid datum (-2,500m to +8,000m).</i></p>
+        <img src="docs/images/ares_valles_outflow_channels.jpg" alt="Ares Vallis and Chryse Outflow" width="100%" />
+        <p align="center">
+          <b>Figure 3: Catastrophic Outflow Channels</b><br/>
+          <i>High-contrast relief of Simud, Tiu, and Ares Vallis paleochannels debouching into Chryse Planitia with streamlined teardrop islands.</i>
+        </p>
       </td>
       <td width="50%">
-        <img src="docs/images/ares_nav_satellite_view.png" alt="High-Resolution Satellite View" width="100%" />
-        <p align="center"><b>Figure 2: Chryse Planitia Tactical Sector (288.0 km Traverse)</b><br/><i>Active pathfinding vector from EVA-1 beacon to Target Outcrop Delta with topographic placenames.</i></p>
+        <img src="docs/images/ares_highres_shaded_relief.png" alt="High-Resolution Shaded Relief & Contours" width="100%" />
+        <p align="center">
+          <b>Figure 4: Micro-Relief Shading & Topographic Contours</b><br/>
+          <i>HiRISE 25cm/pixel stereo relief with real-time vector contour intervals and crater rim shadow projection around Oyama and McLaughlin.</i>
+        </p>
       </td>
     </tr>
     <tr>
       <td width="50%">
-        <img src="docs/images/ares_nav_valles_marineris.png" alt="Valles Marineris Canyon Topography" width="100%" />
-        <p align="center"><b>Figure 3: Valles Marineris Canyon System & Slope Gradients</b><br/><i>Chasmata fault lines with real-time slope hazard identification (>25° scree slope detection).</i></p>
+        <img src="docs/images/ares_global_nomenclature_grid.png" alt="Global Planetary Nomenclature Grid" width="100%" />
+        <p align="center">
+          <b>Figure 5: IAU Planetary Nomenclature Gazetteer</b><br/>
+          <i>Dynamic label decluttering and spatial collision filtering covering major quadrangles (Tempe Terra, Arabia Terra, Hellas, Noachis, Tharsis).</i>
+        </p>
       </td>
       <td width="50%">
-        <img src="docs/images/ares_nav_normal_terrain.png" alt="Normal Terrain Vector Overlay" width="100%" />
-        <p align="center"><b>Figure 4: Cartographic Base Layer & Paleochannel Guidance</b><br/><i>Tactical guidance drawer instructing EVA traversal along the Ares Vallis ancient riverbed.</i></p>
+        <img src="docs/images/ares_nav_valles_marineris.png" alt="Valles Marineris Canyon Topography" width="100%" />
+        <p align="center">
+          <b>Figure 6: Valles Marineris Canyon Fault Lines</b><br/>
+          <i>Chasmata fault lines with real-time slope hazard identification (>25° unstable scree slopes flagged in neon amber/red).</i>
+        </p>
       </td>
     </tr>
   </table>
@@ -52,161 +90,126 @@ ARES Nav renders multi-gigabyte Martian orbital rasters, MOLA topography, and re
 
 ---
 
-## 🌌 The Fundamental Geodetic Challenge: Why Earth GIS Fails on Mars
+## 🌌 The Geodetic Challenge: Why Earth GIS Fails on Mars
 
-Standard mapping engines (Google Maps, Mapbox, OpenStreetMap) are fundamentally bound to terrestrial geodetics:
-1. **The Ellipsoid:** Earth GIS assumes the WGS-84 oblate spheroid ($R_a = 6,378,137\text{ m}$, $f = 1/298.257$). Mars is a triaxial ellipsoid defined under the **IAU 2000 Cartographic Standard** with a mean radius of $R = 3,396,190\text{ m}$.
-2. **The Vertical Datum:** Earth elevation is measured from Mean Sea Level (MSL). Mars possesses no oceans; elevation is strictly computed from the **MOLA Gravitational Areoid**—an equipotential gravitational surface derived from Mars Global Surveyor radio tracking.
-3. **The Absence of a Global Dipole:** Earth navigators rely on magnetic compasses. Mars has **zero global magnetic dipole**, possessing only intense localized crustal remanent magnetic fields that spin conventional compasses erratically.
-4. **Communication Latency:** Terrestrial GPS updates at 10 Hz. Earth-to-Mars light-time latency ranges from **3.1 to 22.2 minutes**, rendering centralized cloud routing impossible. All navigation, slope stability verification, and hazard avoidance must run **fully autonomous on the edge**.
+Every off-the-shelf terrestrial mapping library (Google Maps, Mapbox, Leaflet, OpenStreetMap) makes foundational mathematical assumptions that are fundamentally invalid on Mars:
 
-**ARES Nav is engineered from scratch for these extraterrestrial physics.**
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ TERRESTRIAL GIS (Earth)              │ ARES NAV MARTIAN GIS (Mars)          │
+├──────────────────────────────────────┼──────────────────────────────────────┤
+│ WGS-84 Oblate Spheroid               │ IAU 2000 Mars Triaxial Ellipsoid     │
+│ (Ra = 6,378,137m, f = 1/298.257)     │ (Ra = 3,396,190m, c = 3,376,200m)    │
+├──────────────────────────────────────┼──────────────────────────────────────┤
+│ Mean Sea Level (MSL) Vertical Datum  │ MOLA Gravitational Areoid Equipotential│
+│ (Defined by physical liquid oceans)  │ (Derived from MGS GMM-3 Doppler math)│
+├──────────────────────────────────────┼──────────────────────────────────────┤
+│ Global Dipole Magnetic Field         │ Zero Global Dipole; Intense Local    │
+│ (Reliable magnetic compass needle)   │ Remanent Crustal Fields (±1500 nT)   │
+├──────────────────────────────────────┼──────────────────────────────────────┤
+│ 10 Hz Real-Time Satellite GPS Const. │ Zero GPS Constellation; Autonomous   │
+│ (Direct ephemeris positioning)       │ Visual Odometry + IMU Dead Reckoning │
+├──────────────────────────────────────┼──────────────────────────────────────┤
+│ 15 ms Cloud Round-Trip Latency       │ 3.1 to 22.2 Minute Interplanetary    │
+│ (Centralized backend pathfinding)    │ Light-Time Delay (Autonomous Edge)   │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+**ARES Nav is engineered from the ground up to solve these extraterrestrial physics.**
 
 ---
 
 ## 🔬 The "Dual-Lens" Architectural Paradigm
 
-ARES Nav solves the dual requirement of deep scientific planetary research and gamified mission operations through a persistent geodetic viewport that never destroys the underlying tile cache.
+ARES Nav solves the challenge of uniting deep scientific planetary research with real-time multi-agent simulation through a persistent geodetic viewport that **never tears or resets the underlying tile cache**:
 
+```mermaid
+flowchart TD
+    subgraph CLIENT["Flutter Cross-Platform Client (Web, Desktop, Visor)"]
+        TOP_HUD["Top Nomenclature Search Pill & PLSS Consumables Bar\n(O2 78% • Batt 83% • PNR Alert)"]
+        LENS_SWITCH["Dual-Lens Switcher Pill: [🔭 OBSERVATION] | [🏗️ SIMULATION]"]
+        
+        subgraph VIEWPORT["Persistent Geospatial Viewport Stack"]
+            BASE_MAP["Base Geodetic Map (flutter_map: ^7.0.2)\nNASA Mars Trek WMTS (MOLA 463m, Viking MDIM 2.1, HiRISE 25cm)"]
+            
+            LENS_1["LENS 1: Scientific Observation Overlay\nInSight Marsquake SEIS Hypocenters & Waveforms\nPerseverance & Curiosity Traverses & Instrument Telemetry"]
+            
+            LENS_2["LENS 2: Flame Engine Simulation Sandbox (60 FPS)\nGeospatial-to-Screen Projection Bridge (MapCamera.latLngToScreenPoint)\nMulti-Rover Kinematics, Infrastructure Deployment, Power Grids"]
+        end
+        
+        DRAWER["Bottom Tactical Mission Drawer\nCross-Section Elevation Profile • Slope Hazard Analyzer • Science Logger"]
+    end
+
+    subgraph BACKEND["Spring Boot 3.3.4 (Java 21) Microservices Core"]
+        REST_SCI["/api/v1/science/** (Read-Only NASA PDS Proxy & InSight Cache)"]
+        REST_SIM["/api/v1/simulation/** (Slope Stability Validator & Deployment API)"]
+        STOMP_SOCK["STOMP WebSockets / SockJS (Real-Time Rover & Multi-Client Sync)"]
+        KAFKA["Apache Kafka 3.7 (Partitioned by Martian Quadrangle MC-01..MC-30)"]
+        POSTGIS["PostgreSQL 16 + PostGIS 3.4 (Custom SRID 49900 IAU Mars Ellipsoid)"]
+    end
+
+    LENS_SWITCH -->|Toggle Visible Layer| VIEWPORT
+    TOP_HUD --> VIEWPORT
+    VIEWPORT --> DRAWER
+    DRAWER <-->|REST / STOMP| BACKEND
+    REST_SIM --> POSTGIS
+    STOMP_SOCK --> KAFKA
+    KAFKA --> POSTGIS
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        Flutter UI Shell & HUD                          │
-│     [Top Search Pill]  [Dual-Lens Switcher Pill]  [Layer Selector Deck] │
-├────────────────────────────────────────────────────────────────────────┤
-│                           Flutter Stack                                │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │ LENS 2: Flame Engine Simulation Sandbox (Overlaid Game Loop)      │  │
-│  │ - 60 FPS Canvas-to-Geographic Projection Synchronization         │  │
-│  │ - Mobile Rover Kinematics, Infrastructure Hitboxes, Resource Net │  │
-│  └─────────────────────────────────▲────────────────────────────────┘  │
-│  ┌─────────────────────────────────┼────────────────────────────────┐  │
-│  │ LENS 1: Scientific Observation Layer                             │  │
-│  │ - InSight Marsquake SEIS Hypocenters & Waveform Telemetry        │  │
-│  │ - Mars 2020 Perseverance & MSL Curiosity Traverse Tracks        │  │
-│  └─────────────────────────────────▲────────────────────────────────┘  │
-│  ┌─────────────────────────────────┼────────────────────────────────┐  │
-│  │ BASE MAP: flutter_map Geodetic Core                              │  │
-│  │ - NASA Mars Trek / USGS Web Map Tile Service (WMTS) Engine       │  │
-│  │ - MOLA 463m Elevation | Viking MDIM 2.1 | HiRISE 25cm/px Jezero  │  │
-│  │ - Coordinate Grid Overlay (IAU 2000 Mars System)                 │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────────────────────┘
-                                    │  STOMP WebSockets / REST
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│             Spring Boot 3.3.4 (Java 21) Microservices Core             │
-│  ┌──────────────────────────────┐    ┌──────────────────────────────┐  │
-│  │  /api/v1/science/**          │    │  /api/v1/simulation/**       │  │
-│  │  - NASA PDS & InSight Cache  │    │  - Terrain Slope Validator   │  │
-│  │  - USGS WMTS Proxy Service   │    │  - Infrastructure Deployment │  │
-│  └──────────────┬───────────────┘    └──────────────┬───────────────┘  │
-│                 │                                   │                  │
-│                 ▼                                   ▼                  │
-│       PostgreSQL 16 + PostGIS              Apache Kafka 3.7            │
-│   (Spatial GiST Index, SRID 49900)      (State Broadcast Bus)          │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-### Lens 1: Scientific Observation Mode
-- **Real Planetary Data:** Zero synthetic datasets. Streams live from NASA Planetary Data System (PDS) and USGS Astrogeology servers.
-- **Orbital Rasters:**
-  - **MOLA Color-Shaded Topography:** 463 meters/pixel global elevation map.
-  - **Viking MDIM 2.1 Mosaic:** True-color visible photographic surface.
-  - **HiRISE Jezero Crater Mosaic:** 25 centimeters/pixel surface resolution revealing sedimentary fan channels and rover wheel tracks.
-- **InSight Marsquake SEIS Catalog:** Interactive seismic markers displaying event magnitude ($M1.5 - M4.7$), Sol timestamp, focal depth, and tectonic origin (e.g., Cerberus Fossae grabens).
-- **Surface Fleet Telemetry:** Historic and active rover telemetry (Perseverance, Curiosity) with PIXL, SHERLOC, Mastcam-Z, and MEDA instrument logs.
-
-### Lens 2: In-Situ Simulation Mode
-- **Interactive Sandbox:** Activates a Flutter `Flame` game loop running transparently above the geodetic map.
-- **Geographic-to-Screen Projection Bridge:** All virtual entities (Habitat Domes, Solar Arrays, Pressurized Rovers) hold canonical $\text{LatLng}$ coordinates. When the user pans, zooms, or tilts the map, the bridge projects them to screen space in real time:
-  $$\vec{P}_{\text{canvas}} = \text{MapCamera}.\text{latLngToScreenPoint}(\vec{L}_{\text{Mars}})$$
-- **Server-Side Incline Slope Validation:** When a user attempts to deploy infrastructure, the Spring Boot backend queries high-resolution MOLA elevation rasters. If the local terrain slope gradient exceeds $\mathbf{12.0^\circ}$, deployment is rejected with geotechnical hazard alerts.
 
 ---
 
-## 🏛️ Technical Stack
-
-| Tier | Technology | Purpose |
-| :--- | :--- | :--- |
-| **Mobile & Web Client** | **Flutter 3.24+ (Dart 3.5)** | Cross-platform mission HUD running on Chrome, macOS, iPad, and Android. |
-| **Geospatial Map Engine** | **`flutter_map: ^7.0.2` & `latlong2`** | High-performance raster tile rendering, custom spherical projections. |
-| **Simulation Engine** | **`flame: ^1.38.2`** | 60 FPS game loop, collision hitboxes, sprite rendering, kinematic pathing. |
-| **Backend Framework** | **Spring Boot 3.3.4 (Java 21)** | Enterprise reactive microservices, virtual threads (Project Loom), REST APIs. |
-| **Spatial Database** | **PostgreSQL 16 + PostGIS 3.4** | Non-terrestrial spatial queries, GiST geometry indexing (`Point`, `Polygon`). |
-| **Real-Time Messaging** | **Spring WebSocket + STOMP / SockJS** | Multi-client multiplayer state streaming and low-latency rover position sync. |
-| **Event Broker** | **Apache Kafka 3.7 (KRaft mode)** | High-throughput distributed telemetry ingest from edge rovers and orbiters. |
-| **Containerization** | **Docker & Docker Compose** | Reproducible multi-service deployment with single-command spin-up. |
-
----
-
-## 📂 Monorepo Architecture
+## 🛠️ Complete Technical Stack Matrix
 
 ```
-mars_mission_monorepo/
-├── .github/
-│   ├── ISSUE_TEMPLATE/        # Standardized issue templates
-│   └── workflows/ci.yml       # Automated CI/CD pipeline (JDK 21 & Flutter)
-├── docker-compose.yml         # Containerized PostGIS 16 & Apache Kafka setup
-├── docs/
-│   ├── images/                # High-res screenshots and architectural diagrams
-│   └── ISSUES.md              # The Master 150 High-Level Issue Roadmap
-├── backend/                   # Spring Boot 3.3.4 (Java 21) Microservice
-│   ├── build.gradle           # Hibernate Spatial 6, JTS Core, Kafka, WebFlux
-│   └── src/main/
-│       ├── java/gov/nasa/ares/
-│       │   ├── AresBackendApplication.java
-│       │   ├── config/        # WebSocket STOMP, PostGIS Dialect, Jackson JTS
-│       │   ├── science/       # Read-only NASA PDS & InSight telemetry proxies
-│       │   ├── simulation/    # Slope validation service, deployment controllers
-│       │   └── websocket/     # STOMP broker event publishers
-│       └── resources/
-│           ├── application.yml# Database, NASA WMTS URLs, slope thresholds
-│           └── db/init.sql    # PostGIS table definitions & spatial GiST indexes
-└── frontend/                  # Flutter 3.x Cross-Platform Client
-    ├── pubspec.yaml           # flutter_map 7.0.2, flame 1.38.2, latlong2
-    ├── assets/                # Tactical HUD assets & Flame sprites
-    └── lib/
-        ├── main.dart          # Entry point & DualLensMainScreen coordinator
-        ├── core/              # LensStateController, MartianCoordinate geodetics
-        ├── map/               # MarsBaseMap, NASA WMTS tile catalog (MOLA/HiRISE)
-        ├── observation/       # ScienceLayer, InSight Marsquakes, Percy telemetry
-        ├── simulation/        # MarsSimulationGame, Flame projection bridge
-        └── ui/                # DualLensHeader, MissionDrawer, FieldNotebook
+┌────────────────────────────────────────────────────────────────────────────┐
+│ FRONTEND (Flutter & Flame Engine)                                          │
+├────────────────────────────────────────────────────────────────────────────┤
+│ • Framework:        Flutter 3.24+ (Dart 3.5, Material 3 Dark HUD)          │
+│ • Geodetic Map:     flutter_map ^7.0.2 & latlong2 (IAU 2000 Mars Spheroid) │
+│ • Game/Sim Engine:  Flame 1.38+ (60 FPS GameLoop, Hitboxes, Particles)     │
+│ • Networking:       web_socket_channel, stomp_dart_client, http 1.6        │
+│ • Styling:          Custom glassmorphism (BackdropFilter 14px blur)        │
+├────────────────────────────────────────────────────────────────────────────┤
+│ BACKEND (Spring Boot & Spatial Infrastructure)                             │
+├────────────────────────────────────────────────────────────────────────────┤
+│ • Microservice:     Spring Boot 3.3.4 (Java 21 LTS, Virtual Threads/Loom)  │
+│ • Spatial Engine:   Hibernate Spatial 6.5, JTS Core 1.19, Jackson-JTS      │
+│ • Database:         PostgreSQL 16 with PostGIS 3.4 (Spatial GiST Indexing) │
+│ • Event Broker:     Apache Kafka 3.7 (KRaft Mode, Quadrangle Partitioning) │
+│ • WebSocket Server: Spring WebSocket + STOMP over SockJS (/ws-mars)        │
+│ • Reactive Client:  Spring WebFlux / WebClient (Non-blocking PDS Proxy)    │
+│ • Containerization: Docker & Docker Compose v2.20+                         │
+└────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## ⚡ Quickstart & Local Deployment
 
-### 1. Prerequisites
-- **Git**
-- **Docker & Docker Compose** (v2.20+)
-- **JDK 21** (e.g., Eclipse Temurin 21)
-- **Flutter SDK** (3.20.0 or higher)
-
-### 2. Clone Repository
+### 1. Clone the Monorepo
 ```bash
 git clone https://github.com/YeamimHossainSajid/ARES-Nav.git
 cd ARES-Nav
 ```
 
-### 3. Start Spatial Database & Messaging Infrastructure
+### 2. Launch PostGIS Spatial Database & Apache Kafka
 ```bash
 docker compose up -d postgis kafka
 ```
-*Verify PostGIS spatial extension is ready:*
+*Verify PostGIS spatial extension status:*
 ```bash
 docker exec -it mars_postgis psql -U ares_admin -d mars_mission_db -c "SELECT PostGIS_Full_Version();"
 ```
 
-### 4. Launch Spring Boot Backend
+### 3. Start the Spring Boot Backend Server
 ```bash
 cd backend
 ./gradlew bootRun
 ```
-*The REST API and STOMP WebSocket server will initialize at `http://localhost:8080`.*
+*Backend endpoints and STOMP WebSocket server will start on `http://localhost:8080`.*
 
-### 5. Launch Flutter Frontend in Google Chrome
+### 4. Run the Flutter Frontend in Google Chrome
 ```bash
 cd ../frontend
 flutter pub get
@@ -215,68 +218,82 @@ flutter run -d chrome
 
 ---
 
-## 🛰️ NASA Web Map Tile Service (WMTS) Integration
+## 🌟 Why Contribute? Be Part of the Best Mars Map Ever Built
 
-ARES Nav directly connects to planetary tile services hosted by NASA Jet Propulsion Laboratory (JPL) and the United States Geological Survey (USGS) Astrogeology Science Center:
+Most open-source mapping projects are clones of terrestrial tools. **ARES Nav is different**: we are building the operational navigation software that future Mars astronauts, roboticists, and planetary scientists will actually rely on.
 
-```dart
-// Example NASA Trek WMTS Layer Integration (flutter_map)
-TileLayer(
-  urlTemplate: 'https://trek.nasa.gov/tiles/Mars/EQ/Mars_MGS_MOLA_ClrShade_merge_global_463m/1.0.0//default/default028mm/{z}/{y}/{x}.jpg',
-  userAgentPackageName: 'gov.nasa.ares.mars_nav',
-  minZoom: 1.0,
-  maxZoom: 9.0,
-  tileProvider: NetworkTileProvider(),
-)
+### What Makes Contributing to ARES Nav Unique:
+1. **Real NASA/ESA Data:** You work directly with genuine orbital telemetry from MRO HiRISE ($0.25\text{ m/px}$), Mars Global Surveyor MOLA, Mars Express HRSC, and InSight SEIS seismograms.
+2. **Cutting-Edge Stack:** Modern Flutter 3.24 + Flame 2D game engine + Spring Boot 3 + PostGIS spatial geometry + Kafka event streaming.
+3. **NASA Space Apps Challenge 2026:** ARES Nav is engineered to win, with rigorous scientific alignment and production-grade software craftsmanship.
+4. **Structured for Immediate Impact:** We have pre-architected **150 production-grade issues** so you can pick an exact component, write code, and immediately see your contribution run on Mars!
+
+👉 **[Browse the Master 150 Issues in `docs/ISSUES.md`](docs/ISSUES.md)**
+
+---
+
+## 🗺️ The 150 High-Level Issues Breakdown
+
+The 150 engineering issues are organized across 10 specialized planetary domains:
+
+```
+[Domain 1: Planetary Geodesy & Projections] ────────► Issues #001 - #015
+  IAU 2000 Ellipsoid, MOLA Areoid Undulations, LTP/NED Frames, EKF Dead Reckoning
+
+[Domain 2: Orbital Imagery & HiRISE DTM Tiling] ────► Issues #016 - #030
+  HiRISE 25cm DTM Pipelines, WebGL Dynamic Hillshading Shaders, Sparse Quadtree Caches
+
+[Domain 3: Slope Stability & Geotechnical Hazards] ─► Issues #031 - #045
+  3x3 Sobel Gradient Kernel, Terzaghi Bearing Capacity, Scree Avalanche Triggers (>25°)
+
+[Domain 4: Surface Pathfinding & Kinodynamics] ─────► Issues #046 - #060
+  3D Kinodynamic Field D*, Solar Transit Energy-Positive Routing, PNR Bingo Envelopes
+
+[Domain 5: Flame Engine & Viewport Bridge] ─────────► Issues #061 - #075
+  latLngToScreenPoint Bridge at 60 FPS, MOLA Z-Buffer Depth Sorting, Rocker-Bogie Physics
+
+[Domain 6: In-Situ Resource Utilization (ISRU)] ────► Issues #076 - #090
+  SHARAD Water-Ice Extraction Yields, Sabatier Propellant Synthesis, ECLSS Mass Balance
+
+[Domain 7: Distributed Backend & PostGIS 16] ───────► Issues #091 - #105
+  Custom SRID 49900 Mars CRS, GiST Spatial Index Tuning, PostGIS Raster Elevation Profiles
+
+[Domain 8: Real-Time Telemetry & STOMP / Kafka] ────► Issues #106 - #120
+  Binary Protobuf WebSockets, Kafka Quadrangle Partitioning, Delay-Tolerant Networking
+
+[Domain 9: Astrobiological Field Notebook & AI] ────► Issues #121 - #135
+  Raman Spectral Unmixing, Biosignature Preservation Potential, 3D Core Reconstructor
+
+[Domain 10: Tactical Safety HUD & PLSS Telemetry] ──► Issues #136 - #150
+  PLSS Metabolic Depletion Forecaster, Cosmic Radiation Dosimeter, Autonomous Rescue Dispatch
 ```
 
 ---
 
-## 🗺️ Open-Source Roadmap & 150 Advanced Issues
+## 🤝 How to Join & Contribute
 
-We are committed to building **the definitive, most sophisticated Martian mapping platform on Earth**. To enable senior aerospace engineers, geophysicists, graphics programmers, and distributed systems architects to contribute immediately, we have cataloged **150 production-grade issues** across 10 specialized engineering domains.
-
-👉 **[Read the Full 150-Issue Technical Specification in ISSUES.md](docs/ISSUES.md)**
-
-### Summary of Domains:
-1. **Planetary Geodesy & Non-Terrestrial Projections** (`#001` - `#015`): IAU 2000 ellipsoid calculations, MOLA Areoid geoid undulations, triaxial coordinate transformations.
-2. **Orbital Raster Pipeline & HiRISE DTM Streaming** (`#016` - `#030`): 25cm/px stereo photogrammetry, HRSC terrain relief, dynamic WebGL hillshading shaders.
-3. **Geotechnical Terrain Slope & Hazard Solvers** (`#031` - `#045`): 3x3 Sobel slope gradient engines, TES regolith bearing capacity, scree avalanche modeling.
-4. **Autonomous Surface Pathfinding & Kinodynamics** (`#046` - `#060`): 3D Field D* algorithm with rover wheel slip, solar energy transit optimization, canyon line-of-sight relays.
-5. **Flame Engine Simulation & Viewport Bridge** (`#061` - `#075`): 60 FPS sub-pixel geospatial synchronization, MOLA z-buffer depth sorting, dust devil particle physics.
-6. **In-Situ Resource Utilization (ISRU) Systems** (`#076` - `#090`): SHARAD radar permafrost water-ice extraction yields, Sabatier reactor models, photovoltaic dust attenuation.
-7. **Distributed Spatial Backend & PostGIS 16** (`#091` - `#105`): Custom SRID 49900 Mars spatial functions, R-tree GiST indexing, transactional deployment isolation.
-8. **Real-Time Telemetry & Delay-Tolerant Networking** (`#106` - `#120`): Low-latency STOMP/Protobuf streaming, Kafka Quadrangle partitioning, DTN bundle protocol for solar conjunctions.
-9. **Astrobiological Field Notebook & Spectral AI** (`#121` - `#135`): CRISM/SuperCam Raman mineral deconvolution, Biosignature Preservation Potential (BPP) rating algorithms.
-10. **Astronaut Tactical Safety HUD & PLSS Telemetry** (`#136` - `#150`): Consumable metabolic depletion forecasting, cosmic radiation dosimeter alerts, autonomous rescue dispatch vectors.
-
----
-
-## 🤝 Contributing
-
-We welcome contributions from planetary scientists, aerospace software architects, Flutter engineers, and game engine developers.
-
-1. Review the [Code of Conduct](CODE_OF_CONDUCT.md).
-2. Browse the [150 Open Issues](docs/ISSUES.md) and assign yourself to an issue.
+1. Check out our **[Contributing Guidelines](CONTRIBUTING.md)** and **[Code of Conduct](CODE_OF_CONDUCT.md)**.
+2. Select an unassigned issue from the **[150 Issues Roadmap](docs/ISSUES.md)** or open a new one using the **[Advanced Engineering Template](.github/ISSUE_TEMPLATE/engineering_issue.yml)**.
 3. Fork the repository and create your feature branch:
    ```bash
-   git checkout -b feature/issue-046-kinodynamic-field-dstar
+   git checkout -b feature/issue-061-flame-geospatial-bridge
    ```
-4. Ensure all tests and static analysis pass:
+4. Run tests and static analysis:
    ```bash
    cd frontend && flutter analyze && flutter test
    cd ../backend && ./gradlew test
    ```
-5. Submit a descriptive Pull Request referencing the Issue number.
+5. Submit your Pull Request referencing the Issue ID!
 
 ---
 
-## 📜 Scientific References & Citations
+## 📜 Scientific References & Planetary Datasets
 
 1. **Smith, D. E., et al.** (2001). *Mars Orbiter Laser Altimeter: Experiment overview and surface topography*. Journal of Geophysical Research: Planets, 106(E10), 23689-23722.
 2. **Archinal, B. A., et al.** (2018). *Report of the IAU/IAG Working Group on Cartographic Coordinates and Rotational Elements: 2015*. Celestial Mechanics and Dynamical Astronomy, 130(3), 22.
 3. **Banerdt, W. B., et al.** (2020). *Initial results from the InSight mission on Mars*. Nature Geoscience, 13(3), 183-189.
 4. **Farley, K. A., et al.** (2020). *Mars 2020 Mission Overview*. Space Science Reviews, 216(8), 142.
+5. **McEwen, A. S., et al.** (2007). *Mars Reconnaissance Orbiter's High Resolution Imaging Science Experiment (HiRISE)*. Journal of Geophysical Research: Planets, 112(E5).
 
 ---
 
