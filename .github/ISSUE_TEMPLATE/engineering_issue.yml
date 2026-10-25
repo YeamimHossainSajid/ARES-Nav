@@ -1,0 +1,46 @@
+name: "🚀 Advanced Engineering Issue"
+description: "Propose an architectural enhancement, geodetic optimization, or simulation system."
+title: "[ENG]: "
+labels: ["enhancement", "high-level-architecture", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for contributing to **ARES Nav**! Please consult [`docs/ISSUES.md`](../docs/ISSUES.md) before opening duplicate issues.
+  - type: dropdown
+    id: domain
+    attributes:
+      label: Engineering Domain
+      description: Select the relevant planetary engineering domain.
+      options:
+        - "Domain 1: Planetary Geodesy & Non-Terrestrial Projections"
+        - "Domain 2: High-Resolution Orbital Imagery & HiRISE DTM Tiling"
+        - "Domain 3: Terrain Slope Stability & Geotechnical Hazard Solvers"
+        - "Domain 4: Autonomous Surface Pathfinding & Kinodynamics"
+        - "Domain 5: Flame Engine Simulation & Geospatial Viewport Bridge"
+        - "Domain 6: In-Situ Resource Utilization (ISRU) Micro-Simulation"
+        - "Domain 7: Distributed Backend, PostGIS 16 & Spatial Geometry"
+        - "Domain 8: Real-Time Telemetry Streaming & STOMP / Kafka"
+        - "Domain 9: Astrobiological Field Notebook & Spectral Intelligence"
+        - "Domain 10: Astronaut Tactical Safety HUD & PLSS Telemetry"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Technical & Scientific Specification
+      description: Describe the mathematical formulation, NASA dataset, or algorithmic bottleneck.
+      placeholder: "e.g., Implementing IAU 2000 triaxial transformation with SPICE kernels..."
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Concrete Acceptance Criteria
+      description: Checklist of verifiable benchmarks and unit test thresholds.
+      value: |
+        - [ ] Unit tests verifying mathematical tolerance against NASA SPICE.
+        - [ ] Benchmark verifying 60 FPS viewport rendering or < 5ms backend query latency.
+        - [ ] Documentation updated with scientific citations.
+    validations:
+      required: true

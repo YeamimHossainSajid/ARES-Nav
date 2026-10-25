@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Master 150-Issue Technical Specification
+    url: https://github.com/YeamimHossainSajid/ARES-Nav/blob/main/docs/ISSUES.md
+    about: Read through the catalog of 150 production-grade issues.
+  - name: NASA Space Apps Challenge Documentation
+    url: https://www.spaceappschallenge.org/
+    about: Official competition guidelines and planetary science data portals.
